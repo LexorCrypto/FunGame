@@ -1,0 +1,9 @@
+# Секреты — НЕ коммитить
+.env
+
+# Будущая сборка игры
+node_modules/
+dist/
+
+# macOS
+.DS_Store
