@@ -2,6 +2,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { Player } from './entities/Player.js';
 import { Projectile } from './entities/Projectile.js';
 import { Starfield } from './systems/Starfield.js';
+import { Formation } from './systems/Formation.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -17,11 +18,26 @@ class PlaygroundScene extends Phaser.Scene {
       maxSize: 4,
     });
     this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
+    this.formation = new Formation(this);
+
+    if (!this.anims.exists('cockroach-idle')) {
+      this.anims.create({
+        key: 'cockroach-idle',
+        frames: [{ key: 'cockroach-0' }, { key: 'cockroach-1' }],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    const cockroach = this.add.sprite(0, 0, 'cockroach-0');
+    cockroach.play('cockroach-idle');
+    this.formation.addMember(cockroach, 4, 1);
   }
 
   update(time, delta) {
     this.starfield.update(delta);
     this.player.update(this.keys, delta);
+    this.formation.update(time);
 
     if (this.keys.SPACE.isDown) {
       this.player.tryFire(time, this.projectiles);
