@@ -109,7 +109,15 @@ function viewportSize() {
 }
 
 function applyIntegerZoom() {
+  // Pinch gesture in progress: visualViewport shrinks without a layout
+  // change — do not chase it with a new integer multiplier.
+  if (window.visualViewport && window.visualViewport.scale !== 1) {
+    return;
+  }
+
   const [vw, vh] = viewportSize();
+  // Center against the measured viewport, not the large-viewport vh unit.
+  document.body.style.height = `${vh}px`;
   const k = Math.floor(Math.min(vw / 480, vh / 270));
 
   if (k < 1) {
