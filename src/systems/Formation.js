@@ -62,4 +62,19 @@ export class Formation {
       member.sprite.body?.reset(x, y);
     }
   }
+
+  freeAdjacentSlot(member) {
+    const neighbors = [
+      { col: member.col - 1, row: member.row },
+      { col: member.col + 1, row: member.row },
+      { col: member.col, row: member.row - 1 },
+      { col: member.col, row: member.row + 1 },
+    ];
+    for (const n of neighbors) {
+      if (n.col < 0 || n.col >= this.cols || n.row < 0 || n.row >= this.rows) continue;
+      const taken = this.members.some((m) => m.col === n.col && m.row === n.row);
+      if (!taken) return n;
+    }
+    return null;
+  }
 }

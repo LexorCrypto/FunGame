@@ -30,9 +30,9 @@ class PlaygroundScene extends Phaser.Scene {
     this.formation = new Formation(this);
 
     const roster = [
-      ['toilet', 4, 0], ['toilet', 5, 0],
-      ['cockroach', 1, 1], ['urinal', 3, 1], ['urinal', 6, 1], ['cockroach', 8, 1],
-      ['poop', 2, 2], ['poop', 5, 2], ['poop', 7, 2],
+      ['dryer', 4, 0], ['toilet', 5, 0],
+      ['brush', 0, 1], ['plunger', 2, 1], ['cockroach', 5, 1], ['plunger', 7, 1], ['brush', 9, 1],
+      ['mold', 1, 2], ['urinal', 3, 2], ['poop', 5, 2], ['mold', 7, 2],
     ];
     for (const [type, col, row] of roster) {
       const enemy = new Enemy(this, type);
@@ -67,12 +67,19 @@ class PlaygroundScene extends Phaser.Scene {
         return; // не дамажит при возврате в слот (§4)
       }
       player.hit();
+      if (enemy.type === 'brush') {
+        enemy.die(); // Ёршик — камикадзе: гибнет о игрока (§4)
+      }
     });
     this.physics.add.overlap(
       this.player,
       this.enemyProjectiles,
       (player, projectile) => {
-        player.hit();
+        if (projectile.effect === 'slow') {
+          player.slow(0.5, 3000);
+        } else {
+          player.hit();
+        }
         projectile.deactivate();
       },
     );
@@ -84,6 +91,13 @@ class PlaygroundScene extends Phaser.Scene {
     const puddle = new Puddle(this, x, y);
     this.hazards.add(puddle);
     return puddle;
+  }
+
+  spawnFormationEnemy(type, col, row, opts) {
+    const enemy = new Enemy(this, type, opts);
+    this.enemies.add(enemy);
+    this.formation.addMember(enemy, col, row);
+    return enemy;
   }
 
   update(time, delta) {

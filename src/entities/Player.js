@@ -14,6 +14,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.dead = false;
     this.respawnEvent = null;
     this.invulnerabilityEvent = null;
+    this.speedMul = 1;
+    this.slowEvent = null;
 
 
     if (!scene.anims.exists('ship-idle')) {
@@ -36,7 +38,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const directionX = Number(keys.D.isDown) - Number(keys.A.isDown);
     const directionY = Number(keys.S.isDown) - Number(keys.W.isDown);
     const magnitude = Math.hypot(directionX, directionY);
-    const speed = magnitude > 1 ? 140 / Math.SQRT2 : 140;
+    const base = 140 * this.speedMul;
+    const speed = magnitude > 1 ? base / Math.SQRT2 : base;
     const step = (speed * delta) / 1000;
 
     // Position-based: clamp lands in the same frame, so the sprite never
@@ -44,6 +47,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.x = Phaser.Math.Clamp(this.x + directionX * step, 8, 472);
     this.y = Phaser.Math.Clamp(this.y + directionY * step, 184, 262);
     this.body.reset(this.x, this.y);
+  }
+
+  slow(factor, durationMs) {
+    this.speedMul = factor;
+    if (this.slowEvent) this.slowEvent.remove();
+    this.slowEvent = this.scene.time.delayedCall(durationMs, () => {
+      this.speedMul = 1;
+      this.slowEvent = null;
+    });
   }
 
   hit() {
