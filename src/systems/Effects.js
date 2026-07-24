@@ -1,3 +1,13 @@
+// SPEC §10: гашение скорости ×0.9 на кадр. velocityX/Y ops не существуют в
+// configOpMap 3.90 (проверено эмпирически), поэтому — custom particleClass.
+class DampedParticle extends Phaser.GameObjects.Particles.Particle {
+  update(delta, step, processors) {
+    this.velocityX *= 0.9;
+    this.velocityY *= 0.9;
+    return super.update(delta, step, processors);
+  }
+}
+
 function ensurePixelTexture(scene) {
   if (scene.textures.exists('fx-pixel')) {
     return;
@@ -20,6 +30,7 @@ export function explode(scene, x, y, { count = 10, tint = 0xffffff } = {}) {
     scale: 1,
     tint,
     emitting: false,
+    particleClass: DampedParticle,
   });
 
   emitter.explode(count);
