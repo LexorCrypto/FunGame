@@ -6,6 +6,8 @@ import { Starfield } from './systems/Starfield.js';
 import { Formation } from './systems/Formation.js';
 import { DiveDirector } from './systems/DivePatterns.js';
 import { Puddle } from './entities/Puddle.js';
+import { Boss } from './entities/Boss.js';
+import { WaveDirector } from './systems/WaveDirector.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -29,21 +31,8 @@ class PlaygroundScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
     this.formation = new Formation(this);
 
-    const roster = [
-      ['dryer', 4, 0], ['toilet', 5, 0],
-      ['brush', 0, 1], ['plunger', 2, 1], ['cockroach', 5, 1], ['plunger', 7, 1], ['brush', 9, 1],
-      ['mold', 1, 2], ['urinal', 3, 2], ['poop', 5, 2], ['mold', 7, 2],
-    ];
-    for (const [type, col, row] of roster) {
-      const enemy = new Enemy(this, type);
-      this.enemies.add(enemy);
-      this.formation.addMember(enemy, col, row);
-    }
-    this.diveDirector = new DiveDirector(this, this.formation, {
-      // Формация волны 1 (§6): отрыв каждые 3.0 с, 1 одновременный пикировщик.
-      diveInterval: 3.0,
-      maxDivers: 1,
-    });
+    this.diveDirector = new DiveDirector(this, this.formation);
+    this.bosses = this.physics.add.group();
 
     this.enemyDiedHandler = (enemy) => this.formation.removeMember(enemy);
     this.events.on('enemy-died', this.enemyDiedHandler);
@@ -85,6 +74,27 @@ class PlaygroundScene extends Phaser.Scene {
     );
     this.hazards = this.add.group();
     this.physics.add.overlap(this.player, this.hazards, (player) => player.hit());
+
+    // Босс-волны (§7): контакт = смерть игрока; снаряд игрока = урон боссу.
+    this.physics.add.overlap(this.player, this.bosses, (player) => player.hit());
+    this.physics.add.overlap(
+      this.playerProjectiles,
+      this.bosses,
+      (projectile, boss) => {
+        boss.takeDamage(1);
+        projectile.deactivate();
+      },
+    );
+
+    // Волновой дирижёр (§6/§14): подаёт волны в строй, спавнит боссов, баннеры.
+    this.waveDirector = new WaveDirector(this, {
+      formation: this.formation,
+      diveDirector: this.diveDirector,
+      bossFactory: {
+        superToilet: () => new Boss(this, 'superToilet'),
+      },
+    });
+    this.waveDirector.start();
   }
 
   spawnPuddle(x, y) {
@@ -105,6 +115,7 @@ class PlaygroundScene extends Phaser.Scene {
     this.player.update(this.keys, delta);
     this.formation.update(time);
     this.diveDirector.update(time, delta);
+    this.waveDirector.update(time, delta);
 
     if (this.keys.SPACE.isDown) {
       this.player.tryFire(time, this.playerProjectiles);

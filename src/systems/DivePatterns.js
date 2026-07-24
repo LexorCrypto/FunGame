@@ -213,6 +213,7 @@ export class DiveDirector {
     this.timer = 0;
     this.divers = []; // [{ enemy, member, startTime, ... }]
     this.windZones = []; // [{ cx, x, y, w, h }] — активные зоны ветра сушек
+    this.bulletSpeedMul = 1; // множитель скорости снарядов волны (§4/§6)
   }
 
   update(time, delta) {
@@ -375,11 +376,12 @@ export class DiveDirector {
   fireProjectile(x, y, vx, vy, texture, effect) {
     const projectile = this.scene.enemyProjectiles.get();
     if (!projectile) return;
+    const m = this.bulletSpeedMul ?? 1;
 
     projectile.setTexture(texture);
     projectile.body.setSize(4, 4);
     projectile.effect = effect;
-    projectile.fire(x, y, vx, vy);
+    projectile.fire(x, y, vx * m, vy * m);
   }
 
   addWindZone(zone) {
