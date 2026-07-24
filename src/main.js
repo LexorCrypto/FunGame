@@ -4,6 +4,7 @@ import { Enemy } from './entities/Enemy.js';
 import { EnemyProjectile, Projectile } from './entities/Projectile.js';
 import { Starfield } from './systems/Starfield.js';
 import { Formation } from './systems/Formation.js';
+import { DiveDirector } from './systems/DivePatterns.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -27,9 +28,16 @@ class PlaygroundScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
     this.formation = new Formation(this);
 
-    const cockroach = new Enemy(this, 'cockroach');
-    this.enemies.add(cockroach);
-    this.formation.addMember(cockroach, 4, 1);
+    for (let col = 1; col <= 8; col += 1) {
+      const cockroach = new Enemy(this, 'cockroach');
+      this.enemies.add(cockroach);
+      this.formation.addMember(cockroach, col, 1);
+    }
+    this.diveDirector = new DiveDirector(this, this.formation, {
+      // Формация волны 1 (§6): отрыв каждые 3.0 с, 1 одновременный пикировщик.
+      diveInterval: 3.0,
+      maxDivers: 1,
+    });
 
     this.enemyDiedHandler = (enemy) => this.formation.removeMember(enemy);
     this.events.on('enemy-died', this.enemyDiedHandler);
@@ -41,11 +49,17 @@ class PlaygroundScene extends Phaser.Scene {
       this.playerProjectiles,
       this.enemies,
       (projectile, enemy) => {
+        if (enemy.diveState === 'returning') {
+          return; // неуязвим при возврате в слот (§4)
+        }
         enemy.takeDamage(1);
         projectile.deactivate();
       },
     );
-    this.physics.add.overlap(this.player, this.enemies, (player) => {
+    this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+      if (enemy.diveState === 'returning') {
+        return; // не дамажит при возврате в слот (§4)
+      }
       player.hit();
     });
     this.physics.add.overlap(
@@ -62,6 +76,7 @@ class PlaygroundScene extends Phaser.Scene {
     this.starfield.update(delta);
     this.player.update(this.keys, delta);
     this.formation.update(time);
+    this.diveDirector.update(time, delta);
 
     if (this.keys.SPACE.isDown) {
       this.player.tryFire(time, this.playerProjectiles);

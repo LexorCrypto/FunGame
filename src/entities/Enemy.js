@@ -12,6 +12,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.type = type;
+    this.diveState = 'idle'; // idle (в строю) | diving | returning
     this.hp = hp;
     this.body.setSize(this.width, this.height);
 

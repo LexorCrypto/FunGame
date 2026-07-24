@@ -40,15 +40,26 @@ export class Formation {
     };
   }
 
+  swayOffset(tMs) {
+    return 20 * Math.sin((2 * Math.PI * (tMs / 1000)) / this.swayPeriod);
+  }
+
+  currentSlotPos(member, tMs) {
+    const { x, y } = this.slotCenter(member.col, member.row);
+    return { x: x + this.swayOffset(tMs), y };
+  }
+
   update(tMs) {
-    const swayOffset = 20 * Math.sin((2 * Math.PI * (tMs / 1000)) / this.swayPeriod);
-
     for (const member of this.members) {
-      const { x, y } = this.slotCenter(member.col, member.row);
+      // Пикирующих/возвращающихся позиционирует дайв-дирижёр, не строй.
+      if (member.sprite.diveState && member.sprite.diveState !== 'idle') {
+        continue;
+      }
 
-      member.sprite.x = x + swayOffset;
+      const { x, y } = this.currentSlotPos(member, tMs);
+      member.sprite.x = x;
       member.sprite.y = y;
-      member.sprite.body?.reset(member.sprite.x, member.sprite.y);
+      member.sprite.body?.reset(x, y);
     }
   }
 }
