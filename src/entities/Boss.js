@@ -26,7 +26,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.applyPhaseParams();
 
     // Таймеры/аккумуляторы в ms.
-    this.elapsed = 0;
+    this.swayPhase = 0; // радианы фазы sway (инкрементно, см. update)
     this.fanTimer = 0;
     this.flushTimer = 0;
     this.pauseTimer = 0;
@@ -73,10 +73,10 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    this.elapsed += delta;
-
-    // SPEC §7.1: sway ±60 px по x, период — фазовый.
-    const nx = 240 + 60 * Math.sin((2 * Math.PI * (this.elapsed / 1000)) / this.swayPeriod);
+    // SPEC §7.1: sway ±60 px по x. Фаза копится инкрементно, чтобы смена
+    // периода (3.0→2.0 s при фазе 2) не давала скачка позиции.
+    this.swayPhase += (2 * Math.PI * (delta / 1000)) / this.swayPeriod;
+    const nx = 240 + 60 * Math.sin(this.swayPhase);
     this.setPosition(nx, 60);
     this.body.reset(nx, 60);
 
@@ -85,6 +85,8 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
       this.enterPhase2();
     }
 
+    // SPEC §7: при смене фазы — пауза атак 1.0 s. Пауза замораживает и активный
+    // смыв: воронка не тянет игрока и не расходует время, возобновляясь после.
     if (this.pauseTimer > 0) {
       this.pauseTimer -= delta;
     } else {
@@ -99,17 +101,17 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
         this.flushTimer = 0;
         this.startFlush();
       }
-    }
 
-    if (this.funnelRemaining > 0) {
-      this.funnelRemaining -= delta;
+      if (this.funnelRemaining > 0) {
+        this.funnelRemaining -= delta;
 
-      if (this.scene.player && this.scene.player.active) {
-        this.scene.player.pullToward(240, 135, 30, delta);
-      }
+        if (this.scene.player && this.scene.player.active) {
+          this.scene.player.pullToward(240, 135, 30, delta);
+        }
 
-      if (this.funnelRemaining <= 0) {
-        this.removeFunnel();
+        if (this.funnelRemaining <= 0) {
+          this.removeFunnel();
+        }
       }
     }
   }
