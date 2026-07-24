@@ -41,7 +41,7 @@ class PlaygroundScene extends Phaser.Scene {
       this.playerProjectiles,
       this.enemies,
       (projectile, enemy) => {
-        enemy.die();
+        enemy.takeDamage(1);
         projectile.deactivate();
       },
     );
@@ -71,6 +71,7 @@ class PlaygroundScene extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
+  parent: 'game-container',
   width: 480,
   height: 270,
   pixelArt: true,
@@ -93,20 +94,35 @@ const config = {
 const game = new Phaser.Game(config);
 window.game = game; // debug/test handle (safe: public game, no secrets)
 
-function applyIntegerCanvasScale() {
+const container = document.getElementById('game-container');
+
+// Integer zoom without touching canvas CSS: constrain the parent to an
+// integer multiple of 480×270 and let Scale.FIT compute canvas size,
+// centering and pointer scale itself (overriding canvas CSS post-FIT
+// breaks centering and pointer calibration on non-multiple viewports).
+function applyIntegerZoom() {
   const k = Math.floor(
     Math.min(window.innerWidth / 480, window.innerHeight / 270),
   );
 
   if (k < 1) {
-    return;
+    // Viewport smaller than the field: give FIT the whole window
+    // (fractional shrink), otherwise the stale fixed size would overflow.
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+  } else {
+    container.style.width = `${480 * k}px`;
+    container.style.height = `${270 * k}px`;
   }
 
-  game.canvas.style.width = `${480 * k}px`;
-  game.canvas.style.height = `${270 * k}px`;
+  // Defer to the next frame: called from the window-resize listener, and a
+  // synchronous refresh races the ScaleManager's own resize handling — the
+  // canvas keeps the old display size. After the frame settles, FIT
+  // recomputes size, centering and pointer scale correctly.
+  requestAnimationFrame(() => game.scale.refresh());
 }
 
-game.scale.on(Phaser.Scale.Events.RESIZE, applyIntegerCanvasScale);
-applyIntegerCanvasScale();
+window.addEventListener('resize', applyIntegerZoom);
+applyIntegerZoom();
 
 // TitleScene will replace this flow later.

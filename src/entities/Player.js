@@ -61,8 +61,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.respawnEvent = this.scene.time.delayedCall(1500, () => {
       if (this.lives === 0) {
-        // Temporary until FUN-20 introduces the GameOver scene.
-        this.scene.scene.restart();
+        // Placeholder until FUN-20's GameOver scene: freeze instead of a
+        // silent reset. Fade out and pause the world (no UI strings yet).
+        this.scene.cameras.main.fadeOut(500, 0, 0, 0);
+        this.scene.cameras.main.once(
+          Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+          () => this.scene.scene.pause(),
+        );
         return;
       }
 

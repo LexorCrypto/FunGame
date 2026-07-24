@@ -1,7 +1,7 @@
 import { explode } from '../systems/Effects.js';
 
 const ENEMY_TINTS = {
-  cockroach: 0x7a4a2b,
+  cockroach: [0x7a4a2b, 0xa9703f],
 };
 
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
@@ -28,6 +28,18 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       }
 
       this.play(idleKey);
+    }
+  }
+
+  takeDamage(amount = 1) {
+    if (!this.active) {
+      return;
+    }
+
+    this.hp -= amount;
+
+    if (this.hp <= 0) {
+      this.die();
     }
   }
 
