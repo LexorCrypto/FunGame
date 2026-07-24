@@ -100,16 +100,24 @@ const container = document.getElementById('game-container');
 // integer multiple of 480×270 and let Scale.FIT compute canvas size,
 // centering and pointer scale itself (overriding canvas CSS post-FIT
 // breaks centering and pointer calibration on non-multiple viewports).
+function viewportSize() {
+  const vv = window.visualViewport;
+
+  return vv
+    ? [vv.width, vv.height]
+    : [window.innerWidth, window.innerHeight];
+}
+
 function applyIntegerZoom() {
-  const k = Math.floor(
-    Math.min(window.innerWidth / 480, window.innerHeight / 270),
-  );
+  const [vw, vh] = viewportSize();
+  const k = Math.floor(Math.min(vw / 480, vh / 270));
 
   if (k < 1) {
-    // Viewport smaller than the field: give FIT the whole window
-    // (fractional shrink), otherwise the stale fixed size would overflow.
-    container.style.width = '100vw';
-    container.style.height = '100vh';
+    // Viewport smaller than the field: give FIT the whole measured window
+    // (fractional shrink). Measured px, not 100vw/vh: vh is the *large*
+    // viewport on mobile and browser chrome would obscure the field.
+    container.style.width = `${vw}px`;
+    container.style.height = `${vh}px`;
   } else {
     container.style.width = `${480 * k}px`;
     container.style.height = `${270 * k}px`;
@@ -123,6 +131,7 @@ function applyIntegerZoom() {
 }
 
 window.addEventListener('resize', applyIntegerZoom);
+window.visualViewport?.addEventListener('resize', applyIntegerZoom);
 applyIntegerZoom();
 
 // TitleScene will replace this flow later.
