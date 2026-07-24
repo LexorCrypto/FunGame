@@ -7,6 +7,10 @@ import { Formation } from './systems/Formation.js';
 import { DiveDirector } from './systems/DivePatterns.js';
 import { Puddle } from './entities/Puddle.js';
 import { Boss } from './entities/Boss.js';
+import { BossBigMacaque } from './entities/BossBigMacaque.js';
+import { BossSuperPoop } from './entities/BossSuperPoop.js';
+import { BossRoachQueen } from './entities/BossRoachQueen.js';
+import { BossPlumber } from './entities/BossPlumber.js';
 import { WaveDirector } from './systems/WaveDirector.js';
 
 class PlaygroundScene extends Phaser.Scene {
@@ -36,8 +40,14 @@ class PlaygroundScene extends Phaser.Scene {
 
     this.enemyDiedHandler = (enemy) => this.formation.removeMember(enemy);
     this.events.on('enemy-died', this.enemyDiedHandler);
+    // При смерти босса гасим его телеграф-зоны, чтобы отложенная активация
+    // не подожгла зону урона в следующей волне (SPEC §7).
+    this.clearZonesHandler = () => this.clearDamageZones();
+    this.events.on('boss-defeated', this.clearZonesHandler);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off('enemy-died', this.enemyDiedHandler);
+      this.events.off('boss-defeated', this.clearZonesHandler);
+      this.clearDamageZones();
     });
 
     this.physics.add.overlap(
@@ -92,6 +102,10 @@ class PlaygroundScene extends Phaser.Scene {
       diveDirector: this.diveDirector,
       bossFactory: {
         superToilet: () => new Boss(this, 'superToilet'),
+        bigMacaque: () => new BossBigMacaque(this, 'bigMacaque'),
+        superPoop: () => new BossSuperPoop(this, 'superPoop'),
+        roachQueen: () => new BossRoachQueen(this, 'roachQueen'),
+        plumber: () => new BossPlumber(this, 'plumber'),
       },
     });
     this.waveDirector.start();
@@ -108,6 +122,59 @@ class PlaygroundScene extends Phaser.Scene {
     this.enemies.add(enemy);
     this.formation.addMember(enemy, col, row);
     return enemy;
+  }
+
+  // Телеграф-зона урона боссов (SPEC §7.2/§7.5): контур в течение telegraphMs
+  // (без урона), затем заливка + круговое тело на activeMs (оверлап с игроком
+  // = смерть, через группу hazards). Круг сам уничтожается по истечении.
+  spawnDamageCircle(x, y, radius, { telegraphMs = 0, activeMs = 200, contourColor = 0xffffff, fillColor = 0xc23b4e } = {}) {
+    this.damageZones ??= [];
+    const zone = this.add.circle(x, y, radius, 0xffffff, 0).setStrokeStyle(2, contourColor, 0.9).setDepth(50);
+    const entry = { zone, telegraphTimer: null, activeTimer: null };
+    this.damageZones.push(entry);
+
+    const remove = () => {
+      zone.destroy();
+      const i = this.damageZones.indexOf(entry);
+      if (i >= 0) {
+        this.damageZones.splice(i, 1);
+      }
+    };
+
+    const activate = () => {
+      if (!zone.active) {
+        return;
+      }
+      zone.setFillStyle(fillColor, 0.35);
+      this.physics.add.existing(zone);
+      zone.body.setCircle(radius);
+      zone.body.setAllowGravity(false);
+      zone.body.immovable = true;
+      this.hazards.add(zone);
+      entry.activeTimer = this.time.delayedCall(activeMs, remove);
+    };
+
+    if (telegraphMs > 0) {
+      entry.telegraphTimer = this.time.delayedCall(telegraphMs, activate);
+    } else {
+      activate();
+    }
+
+    return zone;
+  }
+
+  // Гасит все телеграф-зоны боссов: отменяет отложенные таймеры и уничтожает
+  // круги. Вызывается при смерти босса и на SHUTDOWN (SPEC §7).
+  clearDamageZones() {
+    if (!this.damageZones) {
+      return;
+    }
+    for (const entry of this.damageZones) {
+      entry.telegraphTimer?.remove(false);
+      entry.activeTimer?.remove(false);
+      entry.zone?.destroy();
+    }
+    this.damageZones.length = 0;
   }
 
   update(time, delta) {
