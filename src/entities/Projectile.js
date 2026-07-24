@@ -8,6 +8,8 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
       bodyHeight = 6,
       minY = -8,
       maxY = 278,
+      minX = -8,
+      maxX = 488,
     } = {},
   ) {
     super(scene, 0, 0, texture);
@@ -16,6 +18,8 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.speedY = speedY;
+    this.minX = minX;
+    this.maxX = maxX;
     this.minY = minY;
     this.maxY = maxY;
     this.body.setSize(bodyWidth, bodyHeight);
@@ -23,18 +27,24 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
   }
 
 
-  fire(x, y) {
+  fire(x, y, vx = 0, vy = this.speedY) {
     this.setPosition(x, y);
     this.setActive(true);
     this.setVisible(true);
     this.body.enable = true;
-    this.body.setVelocity(0, this.speedY);
+    this.body.setVelocity(vx, vy);
   }
 
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
 
-    if (this.active && (this.y < this.minY || this.y > this.maxY)) {
+    if (
+      this.active &&
+      (this.y < this.minY ||
+        this.y > this.maxY ||
+        this.x < this.minX ||
+        this.x > this.maxX)
+    ) {
       this.deactivate();
     }
   }

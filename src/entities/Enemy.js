@@ -1,11 +1,18 @@
 import { explode } from '../systems/Effects.js';
 
 const ENEMY_TINTS = {
+  urinal: [0xe8f0f4, 0x8fb9c8],
+  poop: [0x7a4a2b, 0xa9703f],
+  toilet: [0xf4f4f4, 0xbfc9cf],
   cockroach: [0x7a4a2b, 0xa9703f],
 };
 
+const ENEMY_HP = {
+  toilet: 3,
+};
+
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, type, { hp = 1 } = {}) {
+  constructor(scene, type, { hp } = {}) {
     super(scene, 0, 0, `${type}-0`);
 
     scene.add.existing(this);
@@ -13,7 +20,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.type = type;
     this.diveState = 'idle'; // idle (в строю) | diving | returning
-    this.hp = hp;
+    this.hp = hp ?? ENEMY_HP[type] ?? 1;
     this.body.setSize(this.width, this.height);
 
     const idleKey = `${type}-idle`;

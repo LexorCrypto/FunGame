@@ -5,6 +5,7 @@ import { EnemyProjectile, Projectile } from './entities/Projectile.js';
 import { Starfield } from './systems/Starfield.js';
 import { Formation } from './systems/Formation.js';
 import { DiveDirector } from './systems/DivePatterns.js';
+import { Puddle } from './entities/Puddle.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -28,10 +29,15 @@ class PlaygroundScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
     this.formation = new Formation(this);
 
-    for (let col = 1; col <= 8; col += 1) {
-      const cockroach = new Enemy(this, 'cockroach');
-      this.enemies.add(cockroach);
-      this.formation.addMember(cockroach, col, 1);
+    const roster = [
+      ['toilet', 4, 0], ['toilet', 5, 0],
+      ['cockroach', 1, 1], ['urinal', 3, 1], ['urinal', 6, 1], ['cockroach', 8, 1],
+      ['poop', 2, 2], ['poop', 5, 2], ['poop', 7, 2],
+    ];
+    for (const [type, col, row] of roster) {
+      const enemy = new Enemy(this, type);
+      this.enemies.add(enemy);
+      this.formation.addMember(enemy, col, row);
     }
     this.diveDirector = new DiveDirector(this, this.formation, {
       // Формация волны 1 (§6): отрыв каждые 3.0 с, 1 одновременный пикировщик.
@@ -70,6 +76,14 @@ class PlaygroundScene extends Phaser.Scene {
         projectile.deactivate();
       },
     );
+    this.hazards = this.add.group();
+    this.physics.add.overlap(this.player, this.hazards, (player) => player.hit());
+  }
+
+  spawnPuddle(x, y) {
+    const puddle = new Puddle(this, x, y);
+    this.hazards.add(puddle);
+    return puddle;
   }
 
   update(time, delta) {
