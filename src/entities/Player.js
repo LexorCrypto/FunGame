@@ -121,10 +121,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    // SPEC §8: щит поглощает 1 попадание — без потери жизни.
+    // SPEC §8: щит поглощает 1 попадание — без потери жизни. Даём короткую
+    // неуязвимость (1.0 s, §8 не задаёт), иначе тот же непрерывный оверлап
+    // (пикировщик/лужа/босс) съел бы жизнь уже на следующем кадре.
     if (this.shielded) {
       this.shielded = false;
       this.shieldRing?.setVisible(false);
+      this.grantInvulnerability(1000);
       return;
     }
 
@@ -157,15 +160,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.body.enable = true;
     this.body.reset(this.x, this.y);
     this.dead = false;
-    this.invulnerable = true;
+    this.grantInvulnerability(2000);
+  }
 
+  // Неуязвимость на durationMs с мерцанием 8 Гц (SPEC §2/§10). Общая для
+  // респауна (2.0 s) и поглощения щитом (1.0 s).
+  grantInvulnerability(durationMs) {
+    this.invulnerable = true;
+    if (this.invulnerabilityEvent) {
+      this.invulnerabilityEvent.remove(false);
+    }
     this.invulnerabilityEvent = this.scene.time.addEvent({
       delay: 125,
       loop: true,
       callback: () => this.setVisible(!this.visible),
     });
-
-    this.scene.time.delayedCall(2000, () => {
+    this.scene.time.delayedCall(durationMs, () => {
       this.invulnerabilityEvent?.remove(false);
       this.invulnerabilityEvent = null;
       this.invulnerable = false;
