@@ -1,16 +1,31 @@
+import { BootScene } from './scenes/BootScene.js';
+import { Player } from './entities/Player.js';
+import { Projectile } from './entities/Projectile.js';
 import { Starfield } from './systems/Starfield.js';
 
-class StarfieldScene extends Phaser.Scene {
+class PlaygroundScene extends Phaser.Scene {
   constructor() {
-    super('starfield');
+    super('playground');
   }
 
   create() {
     this.starfield = new Starfield(this);
+    this.player = new Player(this);
+    this.projectiles = this.physics.add.group({
+      classType: Projectile,
+      runChildUpdate: true,
+      maxSize: 4,
+    });
+    this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
   }
 
   update(time, delta) {
     this.starfield.update(delta);
+    this.player.update(this.keys, delta);
+
+    if (this.keys.SPACE.isDown) {
+      this.player.tryFire(time, this.projectiles);
+    }
   }
 }
 
@@ -25,10 +40,18 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     autoRound: true,
   },
-  scene: StarfieldScene,
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false,
+    },
+  },
+  scene: [BootScene, PlaygroundScene],
 };
 
 const game = new Phaser.Game(config);
+window.game = game; // debug/test handle (safe: public game, no secrets)
 
 function applyIntegerCanvasScale() {
   const k = Math.floor(
@@ -46,4 +69,4 @@ function applyIntegerCanvasScale() {
 game.scale.on(Phaser.Scale.Events.RESIZE, applyIntegerCanvasScale);
 applyIntegerCanvasScale();
 
-// FUN-3 replaces this placeholder scene with BootScene.
+// TitleScene will replace this flow later.
