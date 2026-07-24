@@ -1,4 +1,4 @@
-import { explode } from '../systems/Effects.js';
+import { BossBase } from './BossBase.js';
 
 // SPEC §7.1: Супер-Туалет (волна 5) — 100 HP, две фазы атак.
 const PHASE_PARAMS = {
@@ -6,57 +6,21 @@ const PHASE_PARAMS = {
   2: { fanCount: 7, fanInterval: 1.5, flushInterval: 6.0, funnelDuration: 4.0, swayPeriod: 2.0 },
 };
 
-export class Boss extends Phaser.Physics.Arcade.Sprite {
+export class Boss extends BossBase {
   constructor(scene, id = 'superToilet') {
-    super(scene, 240, 60, 'bossSuperToilet-0');
+    // SPEC §7.1: y=60; SPEC §7: очки акта 1 = 1000×1.
+    super(scene, { id, texture: 'bossSuperToilet-0', x: 240, y: 60, maxHp: 100, points: 1000 });
 
-    scene.add.existing(this);
-    scene.physics.add.existing(this);
-
-    this.type = 'boss';
-    this.bossId = id;
-    this.body.setSize(this.width, this.height);
-
-    // SPEC §7.1: 100 HP; SPEC §7: очки акта 1 = 1000×n.
-    this.maxHp = 100;
-    this.hp = 100;
-    this.points = 1000;
-
-    this.phase = 1;
-    this.applyPhaseParams();
-
-    // Таймеры/аккумуляторы в ms.
-    this.swayPhase = 0; // радианы фазы sway (инкрементно, см. update)
+    // Фаза sway копится инкрементно, чтобы смена периода (3.0→2.0 s при фазе 2)
+    // не давала скачка позиции.
+    this.swayPhase = 0;
     this.fanTimer = 0;
     this.flushTimer = 0;
-    this.pauseTimer = 0;
     this.funnelRemaining = 0;
     this.funnel = null;
     this.funnelTween = null;
 
-    const idleKey = 'bossSuperToilet-idle';
-
-    if (scene.textures.exists('bossSuperToilet-1')) {
-      if (!scene.anims.exists(idleKey)) {
-        scene.anims.create({
-          key: idleKey,
-          frames: [{ key: 'bossSuperToilet-0' }, { key: 'bossSuperToilet-1' }],
-          frameRate: 4,
-          repeat: -1,
-        });
-      }
-
-      this.play(idleKey);
-    }
-
-    // SPEC §1: HP-бар босса 120×4, центр x=240, y=24. Фаза 1 — жёлтый.
-    this.hpBg = scene.add.rectangle(240, 24, 120, 4, 0x1a1c2c).setDepth(1000);
-    this.hpFill = scene.add
-      .rectangle(180, 24, 120, 4, 0xffd94d)
-      .setOrigin(0, 0.5)
-      .setDepth(1001);
-
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
+    this.applyPhaseParams();
   }
 
   applyPhaseParams() {
@@ -68,50 +32,40 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.swayPeriod = params.swayPeriod;
   }
 
-  update(time, delta) {
-    if (!this.active) {
-      return;
-    }
-
-    // SPEC §7.1: sway ±60 px по x. Фаза копится инкрементно, чтобы смена
-    // периода (3.0→2.0 s при фазе 2) не давала скачка позиции.
+  onUpdate(time, delta) {
+    // SPEC §7.1: sway ±60 px по x, y=60.
     this.swayPhase += (2 * Math.PI * (delta / 1000)) / this.swayPeriod;
     const nx = 240 + 60 * Math.sin(this.swayPhase);
     this.setPosition(nx, 60);
     this.body.reset(nx, 60);
 
-    // SPEC §7: переход во фазу 2 при HP ≤ 50%.
-    if (this.phase === 1 && this.hp <= this.maxHp * 0.5) {
-      this.enterPhase2();
+    // SPEC §7: пауза смены фазы замораживает и активный смыв (воронка не тянет
+    // игрока и не расходует время, возобновляясь после).
+    if (this.attacksPaused) {
+      return;
     }
 
-    // SPEC §7: при смене фазы — пауза атак 1.0 s. Пауза замораживает и активный
-    // смыв: воронка не тянет игрока и не расходует время, возобновляясь после.
-    if (this.pauseTimer > 0) {
-      this.pauseTimer -= delta;
-    } else {
-      this.fanTimer += delta;
-      if (this.fanTimer >= this.fanInterval * 1000) {
-        this.fanTimer = 0;
-        this.fireFan();
+    this.fanTimer += delta;
+    if (this.fanTimer >= this.fanInterval * 1000) {
+      this.fanTimer = 0;
+      this.fireFan();
+    }
+
+    this.flushTimer += delta;
+    if (this.flushTimer >= this.flushInterval * 1000) {
+      this.flushTimer = 0;
+      this.startFlush();
+    }
+
+    if (this.funnelRemaining > 0) {
+      this.funnelRemaining -= delta;
+
+      if (this.scene.player && this.scene.player.active) {
+        this.scene.player.pullToward(240, 135, 30, delta);
       }
 
-      this.flushTimer += delta;
-      if (this.flushTimer >= this.flushInterval * 1000) {
-        this.flushTimer = 0;
-        this.startFlush();
-      }
-
-      if (this.funnelRemaining > 0) {
-        this.funnelRemaining -= delta;
-
-        if (this.scene.player && this.scene.player.active) {
-          this.scene.player.pullToward(240, 135, 30, delta);
-        }
-
-        if (this.funnelRemaining <= 0) {
-          this.removeFunnel();
-        }
+      if (this.funnelRemaining <= 0) {
+        this.removeFunnel();
       }
     }
   }
@@ -174,81 +128,13 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  takeDamage(amount = 1) {
-    if (!this.active) {
-      return;
-    }
-
-    this.hp -= amount;
-    this.hpFill.width = Math.max(0, (120 * this.hp) / this.maxHp);
-
-    // SPEC §10: попадание по боссу — белая вспышка спрайта 0.08 s.
-    this.setTintFill(0xffffff);
-    this.scene.time.delayedCall(80, () => {
-      if (this.active) {
-        this.clearTint();
-      }
-    });
-
-    if (this.hp <= 0) {
-      this.die();
-    }
-  }
-
-  enterPhase2() {
-    this.phase = 2;
+  onEnterPhase2() {
     this.applyPhaseParams();
-
-    // SPEC §7: при смене фазы — 1.0 s пауза атак.
-    this.pauseTimer = 1000;
     this.fanTimer = 0;
     this.flushTimer = 0;
-
-    this.setTintFill(0xffffff);
-    this.scene.time.delayedCall(120, () => {
-      if (this.active) {
-        this.clearTint();
-      }
-    });
-
-    // SPEC §10: тряска 2 px / 0.15 s при смене фазы.
-    this.scene.cameras.main.shake(150, new Phaser.Math.Vector2(2 / 480, 2 / 270));
-
-    this.hpFill.setFillStyle(0xc23b4e);
   }
 
-  die() {
-    if (!this.active) {
-      return;
-    }
-
-    explode(this.scene, this.x, this.y, { count: 12, tint: 0xf4f4f4 });
-
-    this.setActive(false);
-    this.setVisible(false);
-    this.body.enable = false;
-
-    this.cleanup();
-
-    this.scene.events.emit('boss-defeated', this);
-  }
-
-  cleanup() {
-    if (this.hpBg) {
-      this.hpBg.destroy();
-      this.hpBg = null;
-    }
-
-    if (this.hpFill) {
-      this.hpFill.destroy();
-      this.hpFill = null;
-    }
-
+  onCleanup() {
     this.removeFunnel();
-  }
-
-  preDestroy() {
-    this.cleanup();
-    super.preDestroy();
   }
 }

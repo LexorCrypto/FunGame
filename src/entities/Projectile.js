@@ -32,6 +32,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.setActive(true);
     this.setVisible(true);
     this.body.enable = true;
+    // Пул общий: сбрасываем физику, чтобы снаряд не унёс чужую гравитацию/
+    // ускорение (дуговые снаряды Макаки, §7.2). Глобально gravity y=0, так что
+    // для прямых снарядов это no-op.
+    this.body.setAcceleration(0, 0);
+    this.body.setGravityY(0);
     this.body.setVelocity(vx, vy);
   }
 
