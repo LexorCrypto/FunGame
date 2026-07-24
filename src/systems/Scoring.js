@@ -118,7 +118,10 @@ export class Scoring {
   }
 
   addEnemyKill(enemy, diving) {
-    this.addPoints(enemyKillPoints(enemy.type, diving), enemy.x, enemy.y);
+    // SPEC §7.4: у отродий Королевы задано фиксированное число очков
+    // (enemy.points = 50), иначе — по таблице §4 с ×2 за пикирование (§9).
+    const points = enemy.points != null ? enemy.points : enemyKillPoints(enemy.type, diving);
+    this.addPoints(points, enemy.x, enemy.y);
   }
 
   addBoss(boss) {
