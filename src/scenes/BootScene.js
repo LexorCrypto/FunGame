@@ -33,6 +33,6 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    this.scene.start('playground');
+    this.scene.start('title');
   }
 }

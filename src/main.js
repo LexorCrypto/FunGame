@@ -12,6 +12,11 @@ import { BossSuperPoop } from './entities/BossSuperPoop.js';
 import { BossRoachQueen } from './entities/BossRoachQueen.js';
 import { BossPlumber } from './entities/BossPlumber.js';
 import { WaveDirector } from './systems/WaveDirector.js';
+import { Scoring } from './systems/Scoring.js';
+import { PowerUp } from './entities/PowerUp.js';
+import { TitleScene } from './scenes/TitleScene.js';
+import { CrawlScene } from './scenes/CrawlScene.js';
+import { EndScene } from './scenes/EndScene.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -24,7 +29,7 @@ class PlaygroundScene extends Phaser.Scene {
     this.playerProjectiles = this.physics.add.group({
       classType: Projectile,
       runChildUpdate: true,
-      maxSize: 4,
+      maxSize: 8,
     });
     this.enemies = this.physics.add.group();
     this.enemyProjectiles = this.physics.add.group({
@@ -38,15 +43,46 @@ class PlaygroundScene extends Phaser.Scene {
     this.diveDirector = new DiveDirector(this, this.formation);
     this.bosses = this.physics.add.group();
 
+    this.scoring = new Scoring(this);
+    this.powerups = this.physics.add.group();
+    this.lifeLostThisWave = false;
+
     this.enemyDiedHandler = (enemy) => this.formation.removeMember(enemy);
-    this.events.on('enemy-died', this.enemyDiedHandler);
-    // При смерти босса гасим его телеграф-зоны, чтобы отложенная активация
-    // не подожгла зону урона в следующей волне (SPEC §7).
+    // При смерти босса гасим его телеграф-зоны и начисляем очки (SPEC §7/§9).
     this.clearZonesHandler = () => this.clearDamageZones();
+    this.bossScoreHandler = (boss) => this.scoring.addBoss(boss);
+    // Потеря жизни отменяет бонус чистой волны текущей волны (SPEC §9).
+    this.playerHitHandler = () => {
+      this.lifeLostThisWave = true;
+    };
+    // SPEC §9: зачистка волны без потери жизни — бонус +250×акт.
+    this.waveClearedHandler = (info) => {
+      if (!this.lifeLostThisWave) {
+        this.scoring.addCleanWave(info.act);
+      }
+      this.lifeLostThisWave = false;
+    };
+    // SPEC §14: 3 смерти → GameOver-сцена с итоговым счётом и волной.
+    this.gameOverHandler = () => {
+      this.scene.start('end', {
+        score: this.scoring.score,
+        wave: this.waveDirector.index + 1,
+      });
+    };
+
+    this.events.on('enemy-died', this.enemyDiedHandler);
     this.events.on('boss-defeated', this.clearZonesHandler);
+    this.events.on('boss-defeated', this.bossScoreHandler);
+    this.events.on('player-hit', this.playerHitHandler);
+    this.events.on('wave-cleared', this.waveClearedHandler);
+    this.events.on('game-over', this.gameOverHandler);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off('enemy-died', this.enemyDiedHandler);
       this.events.off('boss-defeated', this.clearZonesHandler);
+      this.events.off('boss-defeated', this.bossScoreHandler);
+      this.events.off('player-hit', this.playerHitHandler);
+      this.events.off('wave-cleared', this.waveClearedHandler);
+      this.events.off('game-over', this.gameOverHandler);
       this.clearDamageZones();
     });
 
@@ -57,8 +93,17 @@ class PlaygroundScene extends Phaser.Scene {
         if (enemy.diveState === 'returning') {
           return; // неуязвим при возврате в слот (§4)
         }
+        const diving = enemy.diveState === 'diving';
         enemy.takeDamage(1);
         projectile.deactivate();
+        if (!enemy.active) {
+          // Убит этим попаданием (§9): очки (×2 при пикировании) + шанс дропа
+          // пауэр-апа только из пикирующего врага (§8).
+          this.scoring.addEnemyKill(enemy, diving);
+          if (diving) {
+            this.maybeDropPowerUp(enemy.x, enemy.y);
+          }
+        }
       },
     );
     this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
@@ -84,6 +129,12 @@ class PlaygroundScene extends Phaser.Scene {
     );
     this.hazards = this.add.group();
     this.physics.add.overlap(this.player, this.hazards, (player) => player.hit());
+
+    // Пауэр-апы (§8): подбор касанием применяет эффект к кораблю.
+    this.physics.add.overlap(this.player, this.powerups, (player, pu) => {
+      player.applyPowerUp(pu.type);
+      pu.destroy();
+    });
 
     // Босс-волны (§7): контакт = смерть игрока; снаряд игрока = урон боссу.
     this.physics.add.overlap(this.player, this.bosses, (player) => player.hit());
@@ -122,6 +173,15 @@ class PlaygroundScene extends Phaser.Scene {
     this.enemies.add(enemy);
     this.formation.addMember(enemy, col, row);
     return enemy;
+  }
+
+  // SPEC §8: 8% шанс дропа из убитого пикирующего врага (60% выстрел / 40% щит).
+  maybeDropPowerUp(x, y) {
+    if (Math.random() >= 0.08) {
+      return;
+    }
+    const type = Math.random() < 0.6 ? 'shot' : 'shield';
+    this.powerups.add(new PowerUp(this, x, y, type));
   }
 
   // Телеграф-зона урона боссов (SPEC §7.2/§7.5): контур в течение telegraphMs
@@ -180,12 +240,18 @@ class PlaygroundScene extends Phaser.Scene {
   update(time, delta) {
     this.starfield.update(delta);
     this.player.update(this.keys, delta);
-    this.formation.update(time);
-    this.diveDirector.update(time, delta);
-    this.waveDirector.update(time, delta);
+    this.scoring.update();
 
-    if (this.keys.SPACE.isDown) {
-      this.player.tryFire(time, this.playerProjectiles);
+    // SPEC §14: смерть игрока — 1.5 s пауза: строй/дайв/волны заморожены, пока
+    // корабль мёртв (respawn и game-over ведёт таймер сцены, не этот цикл).
+    if (!this.player.dead) {
+      this.formation.update(time);
+      this.diveDirector.update(time, delta);
+      this.waveDirector.update(time, delta);
+
+      if (this.keys.SPACE.isDown) {
+        this.player.tryFire(time, this.playerProjectiles);
+      }
     }
   }
 }
@@ -209,7 +275,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootScene, PlaygroundScene],
+  scene: [BootScene, TitleScene, CrawlScene, PlaygroundScene, EndScene],
 };
 
 const game = new Phaser.Game(config);

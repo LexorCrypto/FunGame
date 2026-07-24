@@ -9,15 +9,8 @@ import {
   actForWaveNumber,
 } from '../data/waves.js';
 
-// Имена боссов на RU (временно, до тикета i18n — SPEC §15, ключи boss_*).
-const BOSS_NAMES = {
-  superToilet: 'СУПЕР-ТУАЛЕТ',
-  bigMacaque: 'БОЛЬШАЯ МАКАКА',
-  superPoop: 'СУПЕР-КАКАХА',
-  roachQueen: 'КОРОЛЕВА ТАРАКАНОВ',
-  plumber: 'ЗЛОЙ САНТЕХНИК ПЕССИМАРИО',
-  goldenThrone: 'ЗОЛОТОЙ ТРОН',
-};
+// Имена боссов и все баннеры — через i18n (SPEC §15).
+import { t, BOSS_NAME_KEYS } from '../data/i18n.js';
 
 export class WaveDirector {
   constructor(scene, { formation, diveDirector, bossFactory }) {
@@ -85,15 +78,15 @@ export class WaveDirector {
     // «БЕСКОНЕЧНЫЙ ЦИКЛ c»; самому первому входу предшествует «ПОБЕДА!» 3.0 s.
     if (cycle > 0 && cyclePos === 0) {
       if (index === 25) {
-        this.bannerQueue.push({ text: 'ПОБЕДА!', color: '#ffd94d', durationMs: 3000 });
+        this.bannerQueue.push({ text: t('victory'), color: '#ffd94d', durationMs: 3000 });
       }
-      this.bannerQueue.push({ text: 'БЕСКОНЕЧНЫЙ ЦИКЛ ' + cycle, color: '#ffd94d', durationMs: 3000 });
+      this.bannerQueue.push({ text: t('endless', { n: cycle }), color: '#ffd94d', durationMs: 3000 });
     }
 
     // Баннер смены акта (SPEC §14, 2.5 s): не показывается для самой первой
     // волны сессии (currentAct стартует с 0).
     if (act !== this.currentAct && this.currentAct !== 0 && act > this.currentAct) {
-      this.bannerQueue.push({ text: 'АКТ ' + act, color: '#f5893d', durationMs: 2500 });
+      this.bannerQueue.push({ text: t('act', { n: act }), color: '#f5893d', durationMs: 2500 });
     }
     this.currentAct = act;
 
@@ -105,7 +98,7 @@ export class WaveDirector {
       if (make) {
         // Босс-волна (SPEC §14, баннер «ВНИМАНИЕ!» 3.0 s).
         this.bannerQueue.push({
-          text: 'ВНИМАНИЕ!\n' + BOSS_NAMES[wave.boss],
+          text: t('boss_warning') + '\n' + t(BOSS_NAME_KEYS[wave.boss]),
           color: '#c23b4e',
           durationMs: 3000,
         });
@@ -124,7 +117,7 @@ export class WaveDirector {
         this.awaitingClear = false;
         this.blocked = true;
         this.bannerQueue.push({
-          text: BOSS_NAMES[wave.boss] + '\n(СКОРО)',
+          text: t(BOSS_NAME_KEYS[wave.boss]) + '\n(' + t('coming_soon') + ')',
           color: '#8a94a6',
           durationMs: Infinity,
         });
@@ -133,7 +126,7 @@ export class WaveDirector {
       // Кампания (§14, «ВОЛНА n» 2.0 s). В бесконечном цикле номера волн нет —
       // вход в цикл обозначает баннер выше.
       if (cycle === 0) {
-        this.bannerQueue.push({ text: 'ВОЛНА ' + waveNumber, color: '#ffd94d', durationMs: 2000 });
+        this.bannerQueue.push({ text: t('wave', { n: waveNumber }), color: '#ffd94d', durationMs: 2000 });
       }
 
       this.boss = null;
@@ -217,6 +210,8 @@ export class WaveDirector {
   }
 
   advance() {
+    // SPEC §9: волна зачищена — событие для бонуса чистой волны.
+    this.scene.events.emit('wave-cleared', { act: this.currentAct, waveNumber: this.index + 1 });
     this.awaitingClear = false;
     this.boss = null;
     this.index += 1;
