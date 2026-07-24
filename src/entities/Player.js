@@ -49,6 +49,26 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.body.reset(this.x, this.y);
   }
 
+  // Внешняя тяга (воронка босса, §7): шаг к (tx,ty) на speed px/s с клампом
+  // в зону игрока (§2). На мёртвого игрока не действует.
+  pullToward(tx, ty, speed, delta) {
+    if (this.dead) {
+      return;
+    }
+
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist === 0) {
+      return;
+    }
+
+    const move = Math.min((speed * delta) / 1000, dist);
+    this.x = Phaser.Math.Clamp(this.x + (dx / dist) * move, 8, 472);
+    this.y = Phaser.Math.Clamp(this.y + (dy / dist) * move, 184, 262);
+    this.body.reset(this.x, this.y);
+  }
+
   slow(factor, durationMs) {
     this.speedMul = factor;
     if (this.slowEvent) this.slowEvent.remove();
