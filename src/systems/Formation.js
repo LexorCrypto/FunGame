@@ -20,6 +20,19 @@ export class Formation {
     this.members.push(member);
   }
 
+  removeMember(member) {
+    const index = this.members.findIndex(
+      (candidate) => candidate === member || candidate.sprite === member,
+    );
+
+    if (index === -1) {
+      return false;
+    }
+
+    this.members.splice(index, 1);
+    return true;
+  }
+
   slotCenter(col, row) {
     return {
       x: this.originX + (col * this.cellW) + (this.cellW / 2),
@@ -35,6 +48,7 @@ export class Formation {
 
       member.sprite.x = x + swayOffset;
       member.sprite.y = y;
+      member.sprite.body?.reset(member.sprite.x, member.sprite.y);
     }
   }
 }
