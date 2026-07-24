@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #050510;
+  color: #f4f4f4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+html { background: #050510; }
+body { min-width: 320px; margin: 0; background: #050510; }
+button, a { font: inherit; }
+button { cursor: pointer; }
+
+.landing {
+  width: min(100% - 32px, 48rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+h1 {
+  margin: 0;
+  color: #ffe14d;
+  font-size: clamp(3.2rem, 12vw, 6.3rem);
+  font-weight: 900;
+  line-height: 0.84;
+  letter-spacing: 0.06em;
+  text-shadow: 4px 4px 0 #b3381f, 8px 8px 0 #1a1c2c, 10px 10px 0 #4dc3ff;
+}
+.subtitle {
+  max-width: 34rem;
+  margin: 1rem 0 0;
+  color: #f4f4f4;
+  font-size: clamp(0.8rem, 2.3vw, 1rem);
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+}
+.language-switcher { display: flex; flex-shrink: 0; gap: 0.32rem; align-items: center; color: #71819f; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
+.language-switcher button { padding: 0.28rem 0; border: 0; color: inherit; background: transparent; }
+.language-switcher .is-active { color: #ffe14d; text-decoration: underline; text-underline-offset: 0.3rem; }
+.language-switcher button:focus-visible, .play-button:focus-visible { outline: 2px solid #4dc3ff; outline-offset: 4px; }
+
+.teaser { overflow: hidden; border: 4px solid #1a1c2c; background: #050510; box-shadow: 0 0 0 2px #4dc3ff; }
+.teaser-canvas { display: block; width: 100%; height: 380px; image-rendering: pixelated; touch-action: none; }
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 1.5rem;
+  border: 1px solid #28324e;
+  background: #28324e;
+}
+.counters p { margin: 0; padding: 0.8rem 1rem; background: #0d1020; color: #4dc3ff; font-size: clamp(0.68rem, 2vw, 0.85rem); font-weight: 700; letter-spacing: 0.05em; }
+.counters strong { color: #ffe14d; }
+.dossier { min-height: 3.1em; margin: 1.5rem 0; padding: 0.85rem 1rem; border-left: 4px solid #7dff6a; color: #7dff6a; background: #0b1220; font-size: clamp(0.68rem, 2vw, 0.85rem); line-height: 1.5; letter-spacing: 0.035em; animation: dossier-in 260ms steps(3, end); }
+.play-button { display: block; width: 100%; padding: 1rem 1.25rem calc(1rem - 2px); border: 4px solid #b3381f; color: #050510; background: #ffe14d; box-shadow: 0 6px 0 #b3381f; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.18em; text-align: center; text-decoration: none; transition: transform 80ms linear, box-shadow 80ms linear; }
+.play-button:active { box-shadow: none; transform: translateY(6px); }
+.controls { margin: 1.6rem 0 0; color: #9da9c3; font-size: clamp(0.65rem, 2vw, 0.82rem); line-height: 1.5; letter-spacing: 0.04em; text-align: center; }
+
+@keyframes dossier-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 480px) {
+  .landing { width: min(100% - 24px, 48rem); padding-top: 2rem; }
+  .header { margin-bottom: 1.25rem; }
+  h1 { font-size: clamp(2.65rem, 15vw, 4rem); }
+  .counters { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}

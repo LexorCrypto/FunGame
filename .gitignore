@@ -5,5 +5,12 @@
 node_modules/
 dist/
 
+# Сборки лендинга
+landing/out/
+landing/.next/
+
+# Инструменты
+.serena/
+
 # macOS
 .DS_Store
