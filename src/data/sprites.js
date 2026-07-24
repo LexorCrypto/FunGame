@@ -1,8 +1,7 @@
 // Pixel schemes from docs/SPEC.md §11: literal schemes verbatim; row-deltas
 // applied by the row numbers printed in §11 (1-based).
-// NOTE: for the five boss deltas the printed row numbers sit one row above
-// the rows their own labels name (eyes/legs/water-glint/gem/mouth). Applied
-// literally here; reported to the spec owner as a suspected §11 defect.
+// 2026-07-24: §11 boss delta row numbers were corrected to the labeled rows
+// (eyes 7–8, legs 11–12, glint/gem 17, mouth 10) by spec-owner ruling.
 // bossPlumber frame B is an interpretation of the prose delta («рука с
 // ключом опущена: ключ в строках 8–12») — §11 contains no literal scheme.
 export const PALETTE = {
@@ -144,8 +143,8 @@ export const SPRITES = {
       '........KKKKKKKKKKKKKKKK........', '......KKWWWWWWWWWWWWWWWWKK......', '.....KWWWWWWWWWWWWWWWWWWWWK.....', '.....KWWKKKKWWWWWWWWKKKKWWK.....',
       '.....KWKRRKWWWWWWWWWWKRRKWK.....', '.....KWKKKKWWWWWWWWWWKKKKWK.....', '.....KWWWWWWWKKKKKKWWWWWWWK.....', '.....KWWWWWWWWWWWWWWWWWWWWK.....',
       '...KKWWWWWWWWWWWWWWWWWWWWWWKK...', '...KWWWWWWWWWWWWWWWWWWWWWWWWK...', '...KKKKKKKKKKKKKKKKKKKKKKKKKK...', '......KKWWWWWWWWWWWWWWWWKK......',
-      '....KKWWWWWWWWWWWWWWWWWWWWKK....', '.....KWWWKWWWWWWWWWWWWKWWWK.....', '.....KWWWKWBBBBBBBBBBWKWWWK.....', '......KWKKWPBBBBBBBBPWKKWK......',
-      '......KWKKWBBBBBBBBBBWKKWK......', '......KWKKWBBBBBBBBBBWKKWK......', '.......KWKKWWBBBBBBWWKKWK.......', '.......KWWKKWWWWWWWWKKWWK.......',
+      '....KKWWWWWWWWWWWWWWWWWWWWKK....', '.....KWWWKWWWWWWWWWWWWKWWWK.....', '.....KWWWKWBBBBBBBBBBWKWWWK.....', '....KWWKKWBBBBBBBBBBBBWKKWWK....',
+      '......KWKKWPBBBBBBBBPWKKWK......', '......KWKKWBBBBBBBBBBWKKWK......', '.......KWKKWWBBBBBBWWKKWK.......', '.......KWWKKWWWWWWWWKKWWK.......',
       '.......KWWWKWWWWWWWWKWWWK.......', '........KWWWWWWWWWWWWWWK........', '.........KWWWWWWWWWWWWK.........', '.........KKKKKKKKKKKKKK.........',
     ],
   ],
@@ -161,7 +160,7 @@ export const SPRITES = {
     [
       '........KKKK........KKKK........', '......KNNNNK........KNNNNK......', '.....KNnnNK..KKKKKK..KNnnNK.....', '.....KNNNNK.KNNNNNNK.KNNNNK.....',
       '......KKKK.KNNNNNNNNK.KKKK......', '..........KNNnnnnnnNNK..........', '........KNNnnWWnnWWnnNNK........', '........KNNnnWKnnWKnnNNK........',
-      '.........KNnnKKKKKKnnNK.........', '.........KNnnnKKKKnnnNK.........', '..........KNnKRRRRKnNK..........', '..........KNNnKKKKnnNK..........',
+      '.........KNNnnnnnnnnNNK.........', '.........KNnnKKKKKKnnNK.........', '..........KNnKRRRRKnNK..........', '..........KNNnKKKKnnNK..........',
       '.....KK....KNNNNNNNNK....KK.....', '....KNNK..KNNNNNNNNNNK..KNNK....', '....KNnNK.KNNNnnnnNNNK.KNnNK....', '....KNnNKKNNNnnnnnnNNNKKNnNK....',
       '...KNNNNNNNNNNnnnnnnNNNNNNNNK...', '...KNNNNNNNNnnnnnnNNNNNNNNNNK...', '....KNNNNNnnnnnnnnNNNNNNNNNK....', '.......KNNNNNnnnnnnNNNNNK.......',
       '........KKNNNNNNNNNNNNKK........', '.......KNNNKKKKKKKKKKNNNK.......', '.......KNNNK........KNNNK.......', '.......KKKKK........KKKKK.......',
@@ -176,7 +175,7 @@ export const SPRITES = {
     ],
     [
       '...............YY...............', '..............Y..Y..............', '........KKKKKYYYYYKKKKK.........', '.......KNNNNNNNNNNNNNNNNK.......',
-      '......KNNNNNNNNNNNNNNNNNNK......', '......KNNNNNNNNNNNNNNNNNNNNK....', '......KNNNWWNNNNNNNNNNWWNNNK....', '.....KNNNWKNNNNNNNNNNKWNNNK.....',
+      '......KNNNNNNNNNNNNNNNNNNK......', '.....KNNNNNNNNNNNNNNNNNNNNK.....', '......KNNNWWNNNNNNNNNNWWNNNK....', '......KNNNWKNNNNNNNNNNKWNNNK....',
       '.....KNNNNNNNNNNNNNNNNNNNNK.....', '....KNnNNNNNNNKKKKNNNNNNNnNK....', '....KNNNNNNNNKRRRRKNNNNNNNNK....', '....KNNNNNNNNNKKKKNNNNNNNNNK....',
       '....KNNnNNNNNNNNNNNNNNNNnNNK....', '.KNNNNNNNNNNNNNNNNNNNNNNNNNNNNK.', '.KNnNNNNNNNNNNNNNNNNNNNNNNNnNNK.', '..KKKKKKKKKKKKKKKKKKKKKKKKKKKK..',
     ],
@@ -190,7 +189,7 @@ export const SPRITES = {
     [
       'K..............YY..............K', '.K.............YY..........K....', '..KK........KYYYYK........K..K..', '...K......KYYYYYYK......KNNNK...',
       '...K.....KKKKKKKK......KNnnnNK..', '.....KKKNnNKNnNKKKKNnnnnnNK.....', '....KNNNNNNNNNNKNNNnnnnnnnNK....', '...KNnNNNNNNNNNNNNNNnnnnnNNNK...',
-      '..KNNnNNnNNnNNnNNnNNnNNnNNnNNK..', '.KNNNNNNNNNNNNNNNNNNNNNNNNNNK...', '.K.K.K.K.K.K.K.K.K.K.K.K.K.K....', '...K.K.K.K.K.K.K.K.K.K.K.K.K....',
+      '..KNNnNNnNNnNNnNNnNNnNNnNNnNNK..', '..KNNNNNNNNNNNNNNNNNNNNNNNNNNK..', '.K.K.K.K.K.K.K.K.K.K.K.K.K.K....', '..K.K.K.K.K.K.K.K.K.K.K.K.K.....',
     ],
   ],
   bossPlumber: [
@@ -224,8 +223,8 @@ export const SPRITES = {
       '........KKKKKKKKKKKKKKKK........', '......KKYYYYYYYYYYYYYYYYKK......', '.....KYYYYYYYYYYYYYYYYYYYYK.....', '.....KYYKKKKYYYYYYYYKKKKYYK.....',
       '.....KYKFFKYYYYYYYYYYKFFKYK.....', '.....KYKKKKYYYYYYYYYYKKKKYK.....', '.....KYYYYYYYKKKKKKYYYYYYYK.....', '.....KYYYYYYYYYYYYYYYYYYYYK.....',
       '...KKYYYYYYYYYYYYYYYYYYYYYYKK...', '...KYYYYYYYYYYYYYYYYYYYYYYYYK...', '...KKKKKKKKKKKKKKKKKKKKKKKKKK...', '......KKYYYYYYYYYYYYYYYYKK......',
-      '....KKYYYYYYYYYYYYYYYYYYYYKK....', '.....KYYYKYYYYYYYYYYYYKYYYK.....', '.....KYYKYKFFFFFFFFFFYKYYYK.....', '......KYKKYFFPFFFFFPFYKKYK......',
-      '......KYKKYFFFFFFFFFFYKKYK......', '......KYKKYFFFFFFFFFFYKKYK......', '.......KYKKYYFFFFFFYYKKYK.......', '.......KYYKKYYYYYYYYKKYYK.......',
+      '....KKYYYYYYYYYYYYYYYYYYYYKK....', '.....KYYYKYYYYYYYYYYYYKYYYK.....', '.....KYYKYKFFFFFFFFFFYKYYYK.....', '....KYYKKYFFFFFFFFFFFFYKKYYK....',
+      '......KYKKYFFPFFFFFPFYKKYK......', '......KYKKYFFFFFFFFFFYKKYK......', '.......KYKKYYFFFFFFYYKKYK.......', '.......KYYKKYYYYYYYYKKYYK.......',
       '.......KYYYKYYYYYYYYKYYYK.......', '........KYYYYYYYYYYYYYYK........', '.........KYYYYYYYYYYYYK.........', '.........KKKKKKKKKKKKKK.........',
     ],
   ],
