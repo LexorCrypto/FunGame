@@ -19,6 +19,7 @@ import { PowerUp } from './entities/PowerUp.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { CrawlScene } from './scenes/CrawlScene.js';
 import { EndScene } from './scenes/EndScene.js';
+import { t } from './data/i18n.js';
 
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
@@ -169,6 +170,71 @@ class PlaygroundScene extends Phaser.Scene {
       },
     });
     this.waveDirector.start();
+
+    this.createPauseOverlay();
+  }
+
+  // SPEC §14: «Пауза | Esc | оверлей «ПАУЗА», игровой мир заморожен».
+  // Заморозка — через `scene.pause()`: он снимает сцену с шага, поэтому
+  // встают ВСЕ её подсистемы разом (Arcade-физика, часы и delayedCall, твины,
+  // UpdateList с preUpdate спрайтов и анимациями), а рендер продолжается —
+  // оверлей виден поверх замороженного кадра. Ручная остановка физики/часов
+  // этого не даёт: UpdateList не подчиняется ни одной из них.
+  // Клавиши слушаются на window, а не через input сцены: у приостановленной
+  // сцены input отключён и Esc обратно уже не пришёл бы. Клавиша выхода в меню
+  // (Q) в SPEC не задана — выбрана здесь, чтобы ключ §15 `quit_to_title` был
+  // достижим из паузы.
+  createPauseOverlay() {
+    this.paused = false;
+
+    const dim = this.add.rectangle(240, 135, 480, 270, 0x000000, 0.65);
+    const title = this.add
+      .text(240, 122, t('pause'), { fontFamily: 'monospace', fontSize: '20px', color: '#ffffff' })
+      .setOrigin(0.5);
+    const hint = this.add
+      .text(240, 150, `ESC — ${t('resume')}   ·   Q — ${t('quit_to_title')}`, {
+        fontFamily: 'monospace',
+        fontSize: '8px',
+        color: '#8a94a6',
+      })
+      .setOrigin(0.5);
+
+    this.pauseOverlay = this.add.container(0, 0, [dim, title, hint]).setDepth(3000).setVisible(false);
+
+    this.pauseKeyHandler = (event) => {
+      if (event.repeat) {
+        return;
+      }
+      if (event.code === 'Escape') {
+        this.togglePause();
+      } else if (event.code === 'KeyQ' && this.paused) {
+        this.setPaused(false);
+        this.scene.start('title');
+      }
+    };
+    window.addEventListener('keydown', this.pauseKeyHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('keydown', this.pauseKeyHandler);
+    });
+  }
+
+  togglePause() {
+    this.setPaused(!this.paused);
+  }
+
+  setPaused(paused) {
+    if (this.paused === paused) {
+      return;
+    }
+
+    this.paused = paused;
+    this.pauseOverlay.setVisible(paused);
+
+    if (paused) {
+      this.scene.pause();
+    } else {
+      this.scene.resume();
+    }
   }
 
   spawnPuddle(x, y) {
