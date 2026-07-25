@@ -85,27 +85,35 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   типизированный формат (дата, SHA, `repo#N`, LightRAG-путь + `track:`,
   `knowledge.<table>:<uuid>`, `ci:`/`tests:`/`codex:`-токены).
 - **Гейт — fail-closed, ДО записи, без следов.** Проверяется КАНДИДАТ, а не то, что уже
-  опубликовано; временный файл создаётся `mktemp` с правами 0600 и снимается в `trap`,
-  чтобы отклонённое тело не осталось лежать в предсказуемом `/tmp`:
+  опубликовано. Весь блок — в subshell, чтобы `umask`, `trap` и временные файлы жили ровно
+  столько, сколько процедура:
 
   ```bash
-  umask 077                       # и кандидат, и перечитанное тело — только владельцу
-  tmp=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX")
-  back="$tmp.back"; trap 'rm -f "$tmp" "$back"' EXIT
-  # …сформировать кандидата в "$tmp"…
-  V=~/.claude/skills/close-session/validate_state_mfa.py
-  python3 "$V" --file "$tmp" --profile typed-pointer-v1 --reader-version 2 || exit 1
-  gh issue edit 12 --body-file "$tmp"
-  gh issue view 12 --json body --jq .body > "$back"
-  diff -u "$tmp" "$back" || { echo "КЛОББЕР: тело не совпало с кандидатом" >&2; exit 1; }
-  python3 "$V" --file "$back" --profile typed-pointer-v1 --reader-version 2
+  (
+    umask 077                                   # оба файла — только владельцу
+    tmp=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX") || exit 1
+    back=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX") || exit 1   # свой mktemp, не "$tmp.back"
+    trap 'rm -f "$tmp" "$back"' EXIT
+    V=~/.claude/skills/close-session/validate_state_mfa.py
+    # …сформировать кандидата в "$tmp"…
+    python3 "$V" --file "$tmp" --profile typed-pointer-v1 --reader-version 2 || exit 1
+    gh issue edit 12 --body-file "$tmp" || exit 1
+    # Побайтово: `gh issue view --jq .body` печатает через Fprintln и добавляет свой
+    # перевод строки, а нормализация хвостовых LF скрыла бы настоящую подмену концовки.
+    # Поэтому тело берём из сырого JSON и сравниваем `cmp`, а не `diff`.
+    DEC='import json,sys; sys.stdout.write(json.load(sys.stdin)["body"])'
+    gh api repos/LexorCrypto/FunGame/issues/12 | python3 -c "$DEC" > "$back" || exit 1
+    cmp -s "$tmp" "$back" || { echo "КЛОББЕР: тело не совпало с кандидатом" >&2; exit 1; }
+    python3 "$V" --file "$back" --profile typed-pointer-v1 --reader-version 2
+  )
   ```
 
-  Путь идёт через `--file`: голый позиционный аргумент означает только `-` (stdin), с
-  путём файл не читается и проверка «проходит» по пустому телу. Без `--profile` валидатор
-  откажет. Настоящий verify-after-write — именно `diff` кандидата с перечитанным телом:
-  повторный прогон валидатора по `--issue` подтвердит лишь схему и пропустит чужую
-  валидную перезапись.
+  Путь идёт через `--file`: голый позиционный аргумент означает только `-` (stdin) — с
+  путём валидатор молча читает stdin, то есть проверяет не кандидата, и при постороннем
+  валидном stdin даже пройдёт. Без `--profile` валидатор откажет. Настоящий
+  verify-after-write — побайтовое `cmp` кандидата с перечитанным телом: повторный прогон
+  валидатора подтвердит лишь схему и пропустит чужую валидную перезапись, а `diff` по
+  нормализованным хвостовым переводам строк пропустил бы подмену концовки.
   Валидатор живёт в скилле, а не в репо: гейт, который репозиторий может подменить на
   `return 0`, не гейт. **Скилла нет под рукой — тело #12 не трогаем вообще**: ручная сверка
   имён полей проверяет не то (валидатор смотрит ещё типы значений, обязательные поля,
