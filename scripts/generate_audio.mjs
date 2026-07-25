@@ -62,12 +62,16 @@ export function buildRequest(entry, apiKey) {
   };
 
   if (entry.kind === 'sfx') {
+    // API принимает duration_seconds только в [0.5, 30] («ближайший эквивалент»
+    // по SPEC §12 / тикету FUN-21): табличные 0.2–0.4 s клампуются к 0.5 —
+    // в MANIFEST остаются дословные значения §12.
+    const durationSeconds = Math.min(30, Math.max(0.5, entry.durationSeconds));
     return {
       url: `${ELEVENLABS_BASE}/sound-generation?output_format=mp3_44100_128`,
       init: {
         method: 'POST',
         headers,
-        body: JSON.stringify({ text: entry.prompt, duration_seconds: entry.durationSeconds }),
+        body: JSON.stringify({ text: entry.prompt, duration_seconds: durationSeconds }),
       },
     };
   }
