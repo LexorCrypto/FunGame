@@ -185,12 +185,14 @@ class PlaygroundScene extends Phaser.Scene {
     return enemy;
   }
 
-  // SPEC §8: 8% шанс дропа из убитого пикирующего врага (60% выстрел / 40% щит).
+  // SPEC §8: 20% шанс дропа из убитого пикирующего врага (70% выстрел / 30% щит).
+  // Ставка поднята с 8%/60% по просьбе владельца 2026-07-25 — бонусы на оружие
+  // должны выпадать заметно чаще.
   maybeDropPowerUp(x, y) {
-    if (Math.random() >= 0.08) {
+    if (Math.random() >= 0.2) {
       return;
     }
-    const type = Math.random() < 0.6 ? 'shot' : 'shield';
+    const type = Math.random() < 0.7 ? 'shot' : 'shield';
     this.powerups.add(new PowerUp(this, x, y, type));
   }
 
