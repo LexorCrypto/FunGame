@@ -315,7 +315,24 @@ class PlaygroundScene extends Phaser.Scene {
     this.damageZones.length = 0;
   }
 
+  // Убитые враги: Enemy.die() только деактивирует спрайт (взрыв и событие уже
+  // отыграны), поэтому без уборки они навсегда остаются в группе enemies и в
+  // display list — в бесконечном цикле это сотни объектов за цикл, сцена ведь
+  // не завершается (codex-аудиты 830abf5/85a68de/965b18e, [P2]).
+  // Уборка идёт кадром позже и ИЗ update, а не из overlap-колбэка: удалять
+  // элемент группы, которую в этот момент обходит Arcade, — как раз тот способ
+  // пропустить соседний оверлап. Дайв-дирижёр и строй уже фильтруют по active.
+  sweepDeadEnemies() {
+    const children = this.enemies.getChildren();
+    for (let i = children.length - 1; i >= 0; i -= 1) {
+      if (!children[i].active) {
+        children[i].destroy();
+      }
+    }
+  }
+
   update(time, delta) {
+    this.sweepDeadEnemies();
     this.starfield.update(delta);
     this.player.update(this.keys, delta);
     this.scoring.update();
