@@ -89,7 +89,8 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   чтобы отклонённое тело не осталось лежать в предсказуемом `/tmp`:
 
   ```bash
-  tmp=$(mktemp -t state-body) && chmod 600 "$tmp"
+  umask 077                       # и кандидат, и перечитанное тело — только владельцу
+  tmp=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX")
   back="$tmp.back"; trap 'rm -f "$tmp" "$back"' EXIT
   # …сформировать кандидата в "$tmp"…
   V=~/.claude/skills/close-session/validate_state_mfa.py
