@@ -19,7 +19,7 @@
 //   node scripts/trim_music_loops.mjs --check    # только замерить, не трогать
 //   node scripts/trim_music_loops.mjs --force    # перерезать даже уложившиеся
 import { execFileSync } from 'node:child_process';
-import { renameSync, unlinkSync } from 'node:fs';
+import { existsSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -130,25 +130,44 @@ for (const track of LOOP_TRACKS) {
 
   // Короткий фейд достаточен, когда края трека и так тихие. Если трек обрезан
   // «по-живому», 4 ms не доводят стык до нуля — удлиняем, пока не уложимся.
+  // Кандидаты всегда рендерятся из ИСХОДНОГО файла: перебор не накапливает
+  // перекодирование, а оригинал не трогается, пока не найден годный вариант.
   let applied = null;
-  let candidate = null;
+  let worst = null;
   for (const fadeS of FADE_STEPS_S) {
     const tmp = renderTrim(file, before, fadeS);
-    const measured = bounds(tmp);
-    unlinkSync(tmp);
-    candidate = { fadeS, measured };
+    let measured;
+    try {
+      measured = bounds(tmp);
+    } finally {
+      // Временный файл снимаем в любом случае — иначе падение декодера
+      // оставило бы мусор рядом с ассетами (codex-аудит dca51ea, [P3]).
+      if (existsSync(tmp)) unlinkSync(tmp);
+    }
+    worst = { fadeS, measured };
     if (measured.gapMs <= MAX_GAP_MS && measured.jump <= MAX_JUMP) {
-      applied = candidate;
+      applied = { fadeS, measured };
       break;
     }
   }
 
-  const chosen = applied ?? candidate;
-  const tmp = renderTrim(file, before, chosen.fadeS);
+  if (!applied) {
+    // Оригинал НЕ перезаписываем негодным кандидатом: иначе он потерян, а
+    // следующий запуск режет уже перекодированный файл (codex-аудит dca51ea, [P2]).
+    console.error(
+      `${track}: ни один фейд до ${(FADE_STEPS_S.at(-1) * 1000).toFixed(0)} ms не уложился ` +
+        `в норму (лучшее: разрыв ${worst.measured.gapMs.toFixed(1)} ms, ` +
+        `скачок ${worst.measured.jump.toFixed(5)}) — файл оставлен как есть, трек нужно перегенерировать`,
+    );
+    failed = true;
+    continue;
+  }
+
+  const tmp = renderTrim(file, before, applied.fadeS);
   try {
     renameSync(tmp, file);
   } catch (error) {
-    unlinkSync(tmp);
+    if (existsSync(tmp)) unlinkSync(tmp);
     throw error;
   }
 
@@ -156,16 +175,8 @@ for (const track of LOOP_TRACKS) {
   console.log(
     `${track}: разрыв ${before.gapMs.toFixed(1)} → ${after.gapMs.toFixed(1)} ms, ` +
       `скачок ${before.jump.toFixed(5)} → ${after.jump.toFixed(5)}, ` +
-      `фейд ${(chosen.fadeS * 1000).toFixed(0)} ms`,
+      `фейд ${(applied.fadeS * 1000).toFixed(0)} ms`,
   );
-  if (!applied) {
-    console.error(
-      `${track}: ПОСЛЕ подрезки разрыв ${after.gapMs.toFixed(1)} ms, ` +
-        `скачок ${after.jump.toFixed(5)} — вне нормы даже при фейде ` +
-        `${(FADE_STEPS_S.at(-1) * 1000).toFixed(0)} ms; трек нужно перегенерировать`,
-    );
-    failed = true;
-  }
 }
 
 process.exit(failed ? 1 : 0);
