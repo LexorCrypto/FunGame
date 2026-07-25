@@ -1,5 +1,6 @@
 import { BossBase } from './BossBase.js';
 import { Enemy } from './Enemy.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §7.4: Королева Тараканов (волна 20) — 260 HP, очки акта 4 = 1000×4.
 const PHASE_PARAMS = {
@@ -94,6 +95,7 @@ export class BossRoachQueen extends BossBase {
   spawnBrood() {
     // Потолок считаем только по живым записям — сначала чистим мёртвые.
     this.brood = this.brood.filter((b) => b.enemy.active);
+    const before = this.brood.length;
 
     for (let i = 0; i < this.spawnCount && this.brood.length < this.spawnCap; i++) {
       const armored = this.armored && Math.random() < 0.3;
@@ -116,6 +118,10 @@ export class BossRoachQueen extends BossBase {
       e.diveState = 'diving';
 
       this.brood.push({ enemy: e, x0: spawnX, y0: spawnY, t: 0 });
+    }
+
+    if (this.brood.length > before) {
+      getAudio()?.sfx('roach_spawn'); // SPEC §12: спавн тараканов (раз на помёт)
     }
   }
 

@@ -1,4 +1,5 @@
 import { explode } from '../systems/Effects.js';
+import { getAudio } from '../systems/Audio.js';
 
 const ENEMY_TINTS = {
   urinal: [0xe8f0f4, 0x8fb9c8],
@@ -63,6 +64,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
+    getAudio()?.sfx('enemy_explode'); // SPEC §12: взрыв врага
     explode(this.scene, this.x, this.y, {
       count: Phaser.Math.Between(8, 12),
       tint: ENEMY_TINTS[this.type] ?? 0xffffff,

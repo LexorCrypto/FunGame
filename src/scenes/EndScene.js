@@ -1,6 +1,7 @@
 import { Starfield } from '../systems/Starfield.js';
 import { t } from '../data/i18n.js';
 import { loadHiscores, isHiscore, addHiscore } from '../systems/Scoring.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §1: пиксельная палитра (только цвета, нужные этому экрану).
 const COLOR = {
@@ -35,6 +36,9 @@ export class EndScene extends Phaser.Scene {
 
   create() {
     this.starfield = new Starfield(this);
+
+    // SPEC §12/§14: экран GameOver — одноразовый джингл gameover.
+    getAudio()?.music('gameover');
 
     this.initials = ['A', 'A', 'A'];
     this.cursor = 0;

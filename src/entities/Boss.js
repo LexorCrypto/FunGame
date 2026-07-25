@@ -1,4 +1,5 @@
 import { BossBase } from './BossBase.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §7.1: Супер-Туалет (волна 5) — 100 HP, две фазы атак.
 const PHASE_PARAMS = {
@@ -93,6 +94,7 @@ export class Boss extends BossBase {
 
   startFlush() {
     this.funnelRemaining = this.funnelDuration * 1000;
+    getAudio()?.sfx('flush'); // SPEC §12: смыв (воронка Супер-Туалета)
 
     if (this.funnel) {
       this.funnel.setPosition(240, 135);

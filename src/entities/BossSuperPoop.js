@@ -1,4 +1,5 @@
 import { BossBase } from './BossBase.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §7: игровое поле 480×270 (main.js config) — используется для расчёта
 // границ роста волны-лужи (outer edge движется к 0/480).
@@ -131,6 +132,7 @@ export class BossSuperPoop extends BossBase {
   // Момент удара о дно (SPEC §7.3): волна-лужа с разрывом случайной ширины
   // gapWidth в случайном месте [60,420]; в фазе 2 — ещё и радиальный разбрызг.
   onImpact() {
+    getAudio()?.sfx('splat'); // SPEC §12: плюх — удар Супер-Какахи о дно
     const gapCenter = Phaser.Math.Between(60, 420);
     const half = this.gapWidth / 2;
 

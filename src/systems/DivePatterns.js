@@ -1,4 +1,5 @@
 // Пикирование врагов (SPEC §4): паттерны спуска по типам + дайв-дирижёр строя.
+import { getAudio } from './Audio.js';
 
 // Переставить врагу позицию и синхронизировать физическое тело (arcade body).
 function place(enemy, x, y) {
@@ -47,12 +48,14 @@ export const DIVE_PATTERNS = {
       if (!diver.fired && y >= 140) {
         diver.fired = true;
         ctx.fireAimed(x, y, 110, 'urinalStream-0');
+        getAudio()?.sfx('stream'); // SPEC §12: струя писсуара
         return 'return';
       }
       if (y >= 270) {
         if (!diver.fired) {
           diver.fired = true;
           ctx.fireAimed(x, y, 110, 'urinalStream-0');
+          getAudio()?.sfx('stream'); // SPEC §12: струя писсуара
         }
         return 'return';
       }
@@ -95,6 +98,7 @@ export const DIVE_PATTERNS = {
       if (diver.fireTimer >= 1200) {
         diver.fireTimer -= 1200;
         ctx.fireFan(x, y, 3, 80, 25, 'enemyDrop-0');
+        getAudio()?.sfx('splat'); // SPEC §12: плюх — веер капель Какахи
       }
 
       return y >= 200 ? 'return' : 'dive';
@@ -142,6 +146,7 @@ export const DIVE_PATTERNS = {
       if (y >= 150 && !diver.fired) {
         diver.fired = true;
         ctx.fireAimed(diver.enemy.x, y, 85, 'plungerSucker-0', 'slow');
+        getAudio()?.sfx('plunger'); // SPEC §12: присоска вантуза
         return 'return';
       }
       return 'dive';
@@ -184,6 +189,7 @@ export const DIVE_PATTERNS = {
             h: 70,
           };
           ctx.addWindZone(diver.zone);
+          getAudio()?.sfx('dryer'); // SPEC §12: фен — зона ветра сушки
         }
         return 'dive';
       }

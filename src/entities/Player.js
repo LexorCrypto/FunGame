@@ -1,4 +1,5 @@
 import { explode, shakePlayerDeath } from '../systems/Effects.js';
+import { getAudio } from '../systems/Audio.js';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene) {
@@ -128,6 +129,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.shielded = false;
       this.shieldRing?.setVisible(false);
       this.grantInvulnerability(1000);
+      getAudio()?.sfx('shield'); // SPEC §12: лопнувший пузырь щита
       return;
     }
 
@@ -135,6 +137,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.dead = true;
     // Чистая волна (§9) сбрасывается при потере жизни — слушает сцена.
     this.scene.events.emit('player-hit');
+    getAudio()?.sfx('player_death'); // SPEC §12: смерть корабля
     explode(this.scene, this.x, this.y, { count: 20, tint: 0xf4f4f4 });
     shakePlayerDeath(this.scene);
     this.setActive(false);
@@ -225,6 +228,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       projectile.fire(this.x, this.y - 10);
     }
 
+    getAudio()?.sfx('shoot'); // SPEC §12: выстрел (один звук и на залп из двух)
     this.lastFired = time;
     return true;
   }

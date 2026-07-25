@@ -3,6 +3,7 @@
 // SPEC §14: Title → Crawl → волна 1 (баннер), пропуск по SPACE/ESC/клику.
 import { Starfield } from '../systems/Starfield.js';
 import { t, toggleLang } from '../data/i18n.js';
+import { getAudio } from '../systems/Audio.js';
 
 const LINE_HEIGHT = 26; // SPEC §13: интерлиньяж 26 px
 const WRAP_WIDTH = 360; // ширина переноса абзацев (поле 480, отступы по бокам)
@@ -45,6 +46,9 @@ export class CrawlScene extends Phaser.Scene {
     this.input.on('pointerdown', () => this.finish());
     // Переключатель языка — отдельная клавиша, не пересекается со скипом.
     this.input.keyboard.on('keydown-L', () => this.onLanguageToggle());
+
+    // SPEC §13: music_crawl играет один раз (не зациклен, §12).
+    getAudio()?.music('crawl');
   }
 
   // Собирает абзацы crawl_pre/1/2/3 из i18n (SPEC §15) в порядке, с пустой
@@ -121,6 +125,9 @@ export class CrawlScene extends Phaser.Scene {
   finish() {
     if (this.finished) return;
     this.finished = true;
+    // SPEC §13: музыка гаснет за 0.3 s, волна 1 — сразу (кроссфейд:
+    // battle стартует поверх затухающего crawl).
+    getAudio()?.stopMusic(300);
     this.scene.start('playground');
   }
 

@@ -1,4 +1,5 @@
 import { BossBase } from './BossBase.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §7.5: Злой Сантехник Пессимарио (волна 25) — 320 HP. Единственный
 // босс, заходящий в зону игрока: ходит/прыгает по всему полю (y ∈ [60,230]).
@@ -161,6 +162,7 @@ export class BossPlumber extends BossBase {
     p.body.setSize(8, 8);
     p.effect = undefined;
     p.fire(this.x, this.y, 0, 0);
+    getAudio()?.sfx('wrench'); // SPEC §12: бросок гаечного ключа
 
     const player = this.scene.player;
     const targetX = player && player.active ? player.x : this.x;
@@ -246,6 +248,7 @@ export class BossPlumber extends BossBase {
   startDrill() {
     this.drillActive = true;
     this.drillRemaining = 3500;
+    getAudio()?.sfx('plunger'); // SPEC §12: присоска — вантуз-бур
     if (!this.drillCone) {
       this.drillCone = this.scene.add.graphics().setDepth(5);
     }

@@ -1,6 +1,7 @@
 import { Starfield } from '../systems/Starfield.js';
 import { t, getLang, toggleLang } from '../data/i18n.js';
 import { loadHiscores } from '../systems/Scoring.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §14: Boot → Title. Титульник: название, промпт старта, топ-10,
 // переключатель языка. Title → Crawl — fade 0.5 s (§14, строка «Title → Crawl»).
@@ -94,10 +95,31 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
     this.updateLanguageText();
 
+    // SPEC §12: индикатор звука (клавишу M слушает AudioSystem глобально;
+    // тут — только отображение sound_on/sound_off из i18n §15).
+    this.soundText = this.add
+      .text(centerX, 261, '', {
+        fontFamily: 'monospace',
+        fontSize: '8px',
+        color: '#8a94a6',
+      })
+      .setOrigin(0.5, 0);
+    this.updateSoundText();
+
+    this.muteHandler = () => this.updateSoundText();
+    this.game.events.on('mute-changed', this.muteHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off('mute-changed', this.muteHandler);
+    });
+
     this.input.keyboard.on('keydown-SPACE', this.startGame, this);
     this.input.keyboard.on('keydown-L', this.handleToggleLang, this);
     this.input.keyboard.on('keydown-LEFT', this.handleToggleLang, this);
     this.input.keyboard.on('keydown-RIGHT', this.handleToggleLang, this);
+
+    // SPEC §12: музыка титульника (зациклена). До первого жеста WebAudio
+    // заперт — AudioSystem доиграет трек по событию unlocked.
+    getAudio()?.music('title');
   }
 
   update(time, delta) {
@@ -149,6 +171,12 @@ export class TitleScene extends Phaser.Scene {
     this.languageText.setText(`\u25c4 ${t('language')}: ${label} \u25ba`);
   }
 
+  // SPEC §12/§15: строка «ЗВУК: ВКЛ/ВЫКЛ» + подсказка клавиши M.
+  updateSoundText() {
+    const muted = getAudio()?.muted ?? false;
+    this.soundText.setText(`M — ${t(muted ? 'sound_off' : 'sound_on')}`);
+  }
+
   // SPEC §16 п.13: переключение языка меняет надписи без перезагрузки.
   handleToggleLang() {
     if (this.transitioning) {
@@ -163,6 +191,7 @@ export class TitleScene extends Phaser.Scene {
     this.promptText.setText(t('press_start'));
     this.insertCoinText.setText(t('insert_coin'));
     this.updateLanguageText();
+    this.updateSoundText();
     this.renderHiscores();
   }
 

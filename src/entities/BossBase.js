@@ -1,4 +1,5 @@
 import { explode } from '../systems/Effects.js';
+import { getAudio } from '../systems/Audio.js';
 
 // SPEC §7: общая механика всех боссов.
 // - HP-бар 120×4 по центру (240,24) (SPEC §1); фаза 1 — жёлтый, фаза 2 — красный.
@@ -99,6 +100,7 @@ export class BossBase extends Phaser.Physics.Arcade.Sprite {
 
     // SPEC §10: попадание по боссу — белая вспышка спрайта 0.08 s.
     this.flash(80);
+    getAudio()?.sfx('boss_hit'); // SPEC §12: хит босса
 
     if (this.hp <= 0) {
       this.die();
@@ -110,6 +112,8 @@ export class BossBase extends Phaser.Physics.Arcade.Sprite {
 
     // SPEC §7: при смене фазы — 1.0 s пауза атак.
     this.pauseTimer = 1000;
+
+    getAudio()?.sfx('phase'); // SPEC §12: смена фазы (alarm riser)
 
     // SPEC §10: вспышка + тряска 2 px / 0.15 s при смене фазы.
     this.flash(120);

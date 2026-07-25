@@ -13,6 +13,7 @@ import { BossRoachQueen } from './entities/BossRoachQueen.js';
 import { BossPlumber } from './entities/BossPlumber.js';
 import { WaveDirector } from './systems/WaveDirector.js';
 import { Scoring } from './systems/Scoring.js';
+import { initAudio, getAudio } from './systems/Audio.js';
 import { PowerUp } from './entities/PowerUp.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { CrawlScene } from './scenes/CrawlScene.js';
@@ -57,6 +58,7 @@ class PlaygroundScene extends Phaser.Scene {
     };
     // SPEC §9: зачистка волны без потери жизни — бонус +250×акт.
     this.waveClearedHandler = (info) => {
+      getAudio()?.sfx('wave_clear'); // SPEC §12: чистая волна (level clear)
       if (!this.lifeLostThisWave) {
         this.scoring.addCleanWave(info.act);
       }
@@ -103,6 +105,9 @@ class PlaygroundScene extends Phaser.Scene {
           if (diving) {
             this.maybeDropPowerUp(enemy.x, enemy.y);
           }
+        } else {
+          // Выжил (туалет 3 HP, сушка 2 HP, бронированное отродье): хит-конфирм.
+          getAudio()?.sfx('hit'); // SPEC §12: попадание
         }
       },
     );
@@ -133,6 +138,7 @@ class PlaygroundScene extends Phaser.Scene {
     // Пауэр-апы (§8): подбор касанием применяет эффект к кораблю.
     this.physics.add.overlap(this.player, this.powerups, (player, pu) => {
       player.applyPowerUp(pu.type);
+      getAudio()?.sfx('powerup'); // SPEC §12: подбор пауэр-апа
       pu.destroy();
     });
 
@@ -165,6 +171,7 @@ class PlaygroundScene extends Phaser.Scene {
   spawnPuddle(x, y) {
     const puddle = new Puddle(this, x, y);
     this.hazards.add(puddle);
+    getAudio()?.sfx('splat'); // SPEC §12: плюх — лужа туалета
     return puddle;
   }
 
@@ -280,6 +287,11 @@ const config = {
 
 const game = new Phaser.Game(config);
 window.game = game; // debug/test handle (safe: public game, no secrets)
+
+// SPEC §12/§9: аудиосистема живёт весь срок игры (музыка переживает смену
+// сцен, клавиша M глобальна). Инициализация — после READY, когда у игры
+// уже создан SoundManager.
+game.events.once('ready', () => initAudio(game));
 
 const container = document.getElementById('game-container');
 

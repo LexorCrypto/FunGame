@@ -11,6 +11,7 @@ import {
 
 // Имена боссов и все баннеры — через i18n (SPEC §15).
 import { t, BOSS_NAME_KEYS } from '../data/i18n.js';
+import { getAudio } from './Audio.js';
 
 export class WaveDirector {
   constructor(scene, { formation, diveDirector, bossFactory }) {
@@ -103,6 +104,9 @@ export class WaveDirector {
           durationMs: 3000,
         });
 
+        // SPEC §14: босс-волна — музыка boss (зациклена, §12).
+        getAudio()?.music('boss');
+
         // Дирижёр владеет жизненным циклом босса: включает его в группу
         // коллизий сцены (контракт фабрики — только сконструировать Boss).
         this.boss = make();
@@ -127,6 +131,15 @@ export class WaveDirector {
       // вход в цикл обозначает баннер выше.
       if (cycle === 0) {
         this.bannerQueue.push({ text: t('wave', { n: waveNumber }), color: '#ffd94d', durationMs: 2000 });
+      }
+
+      // SPEC §12/§14: обычная волна — battle (зациклена; повторный вызов
+      // no-op, между волнами трек не рестартует). Победа над Пессимарио
+      // (первый вход в цикл) — однократная фанфара victory, затем battle.
+      if (cycle > 0 && cyclePos === 0 && index === 25) {
+        getAudio()?.music('victory', { next: 'battle' });
+      } else {
+        getAudio()?.music('battle');
       }
 
       this.boss = null;
