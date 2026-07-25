@@ -14,8 +14,13 @@
 ## Трекер задач
 
 Linear (org Lexor54): команда **FUN**, проект «Pissuarius v1», 9 майлстоунов
-M1–M9 (этапы §17 PRD), 26 атомарных issues FUN-1…FUN-26. Одна задача = одна
-сессия исполнителя; приёмка — по SPEC §16. GitHub Issues для задач не используем.
+M1–M9 (этапы §17 PRD), 26 атомарных issues FUN-1…FUN-26 — все Done. Одна задача =
+одна сессия исполнителя; приёмка — по SPEC §16.
+
+**Открытые вопросы, находки аудитов и приёмка — GitHub Issues** этого репозитория
+(решение владельца 2026-07-25). В `status.md` их НЕ дублировать: там только ссылки
+на трекер. Метки: `audit`, `owner-decision`, `acceptance`, `priority:p2`,
+`priority:p3`.
 
 ## Стек-контракт (не пересматривать без команды пользователя)
 
@@ -43,7 +48,7 @@ M1–M9 (этапы §17 PRD), 26 атомарных issues FUN-1…FUN-26. Од
 
 ## close_session
 
-- `close_session.task_mode = local_status` (задачи — Linear; `status.md` — снапшот)
+- `close_session.task_mode = hybrid` (задачи — GitHub Issues; `status.md` — снапшот со ссылками)
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
 - `close_session.context_hygiene = ask`
