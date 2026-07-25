@@ -79,13 +79,14 @@ function bounds(file) {
   };
 }
 
-// Готовит подрезанный вариант во временный файл и возвращает его путь.
-// Всегда режет из ИСХОДНОГО файла: перебор длины фейда не должен накапливать
-// перекодирование.
-function renderTrim(file, b, fadeS) {
+// Рендерит подрезанный вариант в `out`. Всегда режет из ИСХОДНОГО файла:
+// перебор длины фейда не должен накапливать перекодирование. Путь `out`
+// передаётся снаружи, чтобы уборка временного файла жила в `finally` у
+// вызывающего: ffmpeg может создать файл и упасть уже после этого
+// (codex-аудит f389d17, [P3]).
+function renderTrim(file, b, fadeS, out) {
   const duration = b.endS - b.startS;
   const fadeOutAt = Math.max(0, duration - fadeS);
-  const tmp = `${file}.trim.mp3`;
 
   execFileSync('ffmpeg', [
     '-v', 'error', '-y',
@@ -94,10 +95,8 @@ function renderTrim(file, b, fadeS) {
     '-t', duration.toFixed(6),
     '-af', `afade=t=in:st=0:d=${fadeS},afade=t=out:st=${fadeOutAt.toFixed(6)}:d=${fadeS}`,
     '-c:a', 'libmp3lame', '-b:a', BITRATE, '-ar', String(SAMPLE_RATE),
-    tmp,
+    out,
   ]);
-
-  return tmp;
 }
 
 const args = process.argv.slice(2);
@@ -105,7 +104,8 @@ const checkOnly = args.includes('--check');
 const force = args.includes('--force');
 let failed = false;
 
-for (const track of LOOP_TRACKS) {
+// Возвращает true, если трек в норме (или приведён к ней).
+function processTrack(track) {
   const file = join(AUDIO_DIR, `${track}.mp3`);
   const before = bounds(file);
   const needs = force || before.gapMs > MAX_GAP_MS || before.jump > MAX_JUMP;
@@ -115,7 +115,7 @@ for (const track of LOOP_TRACKS) {
       `${track}: разрыв петли ${before.gapMs.toFixed(1)} ms (норма ≤ ${MAX_GAP_MS}), ` +
         `скачок на стыке ${before.jump.toFixed(5)} (норма ≤ ${MAX_JUMP}) — пропуск`,
     );
-    continue;
+    return true;
   }
 
   if (checkOnly) {
@@ -124,8 +124,7 @@ for (const track of LOOP_TRACKS) {
         `(начало ${before.headQuietMs.toFixed(1)}, хвост ${before.tailQuietMs.toFixed(1)}), ` +
         `скачок на стыке ${before.jump.toFixed(5)} — НУЖНА ПОДРЕЗКА`,
     );
-    failed = true;
-    continue;
+    return false;
   }
 
   // Короткий фейд достаточен, когда края трека и так тихие. Если трек обрезан
@@ -134,14 +133,16 @@ for (const track of LOOP_TRACKS) {
   // перекодирование, а оригинал не трогается, пока не найден годный вариант.
   let applied = null;
   let worst = null;
+  const tmp = `${file}.trim.mp3`;
   for (const fadeS of FADE_STEPS_S) {
-    const tmp = renderTrim(file, before, fadeS);
     let measured;
     try {
+      renderTrim(file, before, fadeS, tmp);
       measured = bounds(tmp);
     } finally {
-      // Временный файл снимаем в любом случае — иначе падение декодера
-      // оставило бы мусор рядом с ассетами (codex-аудит dca51ea, [P3]).
+      // Временный файл снимаем в любом случае — ffmpeg может создать его и
+      // упасть уже после этого, а декодер может упасть на замере
+      // (codex-аудиты dca51ea/f389d17, [P3]).
       if (existsSync(tmp)) unlinkSync(tmp);
     }
     worst = { fadeS, measured };
@@ -159,16 +160,14 @@ for (const track of LOOP_TRACKS) {
         `в норму (лучшее: разрыв ${worst.measured.gapMs.toFixed(1)} ms, ` +
         `скачок ${worst.measured.jump.toFixed(5)}) — файл оставлен как есть, трек нужно перегенерировать`,
     );
-    failed = true;
-    continue;
+    return false;
   }
 
-  const tmp = renderTrim(file, before, applied.fadeS);
   try {
+    renderTrim(file, before, applied.fadeS, tmp);
     renameSync(tmp, file);
-  } catch (error) {
+  } finally {
     if (existsSync(tmp)) unlinkSync(tmp);
-    throw error;
   }
 
   const after = bounds(file);
@@ -177,6 +176,20 @@ for (const track of LOOP_TRACKS) {
       `скачок ${before.jump.toFixed(5)} → ${after.jump.toFixed(5)}, ` +
       `фейд ${(applied.fadeS * 1000).toFixed(0)} ms`,
   );
+  return true;
+}
+
+for (const track of LOOP_TRACKS) {
+  try {
+    if (!processTrack(track)) {
+      failed = true;
+    }
+  } catch (error) {
+    // Битый файл или отсутствующий ffmpeg не должны ронять весь прогон
+    // стек-трейсом: сообщаем по-человечески и идём к следующему треку.
+    console.error(`${track}: обработать не удалось — ${String(error.message).split('\n')[0]}`);
+    failed = true;
+  }
 }
 
 process.exit(failed ? 1 : 0);
