@@ -734,6 +734,13 @@ KNNNNK
 | music_victory.mp3 | 8 s | Short triumphant 8-bit fanfare, rising major arpeggio finale, retro arcade |
 | music_gameover.mp3 | 6 s | Sad descending 8-bit jingle, retro game over |
 
+**Бесшовность лупов (title/battle/boss).** Генератор оставляет в конце трека
+хвостовую тишину — при `loop: true` она слышна как пауза каждый круг. Поэтому
+луп-треки после генерации обрезаются по началу хвостовой тишины (порог −50 dB)
+с микро-фейдами 6 ms на входе и 12 ms на выходе, чтобы стык шёл через нуль без
+щелчка. Фактические длительности после обрезки: title 29.51 s, battle 42.76 s,
+boss 39.97 s (номиналы в таблице — параметр генерации, не приёмочное значение).
+
 Громкости (WebAudio gain): музыка 0.5, SFX 0.8; мьют по `M` — общий gain 0,
 флаг в `localStorage["pissuarius_mute"]`.
 
