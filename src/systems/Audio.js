@@ -95,8 +95,10 @@ export class AudioSystem {
   }
 
   // SFX по короткому имени события ('shoot' → 'sfx_shoot'). Нет файла — тишина.
-  // Громкость — через add-config: play-config {volume} в Phaser 3.90 НЕ
-  // применяется к gain-ноде (проверено эмпирически), add-config — применяется.
+  // Громкость — через add-config (как у музыки). Примечание для верификации:
+  // геттер volume/gain у WebAudioSound читает AudioParam, который применяет
+  // setValueAtTime только на границе тика аудио-потока — синхронное чтение
+  // сразу после play() показывает старое значение (реальный gain корректен).
   sfx(name) {
     const key = `sfx_${name}`;
     if (!this.game.cache.audio.exists(key)) {
