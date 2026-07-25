@@ -205,6 +205,13 @@ class PlaygroundScene extends Phaser.Scene {
       if (event.repeat) {
         return;
       }
+      // Сцена может быть уже снята с хода (game-over поставил start('end') в
+      // очередь ScenePlugin, но слушатель живёт до следующего кадра): вызов
+      // pause() на неработающей сцене печатает ошибку в консоль, а §16
+      // требует чистую консоль (codex-аудит a669d93, [P3]).
+      if (!(this.paused ? this.scene.isPaused() : this.scene.isActive())) {
+        return;
+      }
       if (event.code === 'Escape') {
         this.togglePause();
       } else if (event.code === 'KeyQ' && this.paused) {
@@ -213,9 +220,12 @@ class PlaygroundScene extends Phaser.Scene {
       }
     };
     window.addEventListener('keydown', this.pauseKeyHandler);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener('keydown', this.pauseKeyHandler);
-    });
+    // SHUTDOWN И DESTROY: при `game.destroy()` / `SceneManager.remove()` Phaser
+    // шлёт только DESTROY, и слушатель окна пережил бы игру (codex-аудит
+    // a669d93, [P2]). removeEventListener идемпотентен — двойной вызов безвреден.
+    const removeKeyHandler = () => window.removeEventListener('keydown', this.pauseKeyHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeKeyHandler);
+    this.events.once(Phaser.Scenes.Events.DESTROY, removeKeyHandler);
   }
 
   togglePause() {

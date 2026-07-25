@@ -802,7 +802,8 @@ KNNNNK
 
 ```
 Boot → Title → Crawl → Game ⇄ Pause → (GameOver → Initials → Title)
-                 ↑                    └→ Victory → Endless …
+                 ↑        │            └→ Victory → Endless …
+                 └────────┴── Pause --Q--> Title
 ```
 
 | Переход | Длительность | Что на экране |
