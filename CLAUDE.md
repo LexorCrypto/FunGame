@@ -9,7 +9,11 @@
 2. `docs/SPEC.md` — нормативная спецификация: все числа, волны, боссы, пиксельные
    схемы, аудио, i18n. Чего там нет — не существует.
 3. `CONTEXT.md` — глоссарий; терминология строго по нему.
-4. `status.md` — текущий статус; `.planning/.continue-here.md` — точка продолжения.
+4. **🔄 STATE/HANDOFF — [issue #12](https://github.com/LexorCrypto/FunGame/issues/12)** —
+   точка входа сессии: машинные указатели (main_sha, next, active, blockers) и журнал
+   сессий в комментариях. Оттуда — на 📌 **CONTEXT**
+   ([issue #11](https://github.com/LexorCrypto/FunGame/issues/11)), стабильный паспорт проекта.
+5. `status.md` — офлайн-снапшот состояния; `.planning/.continue-here.md` — развёрнутый хэндофф.
 
 ## Трекер задач
 
@@ -17,6 +21,12 @@
 туда идут задачи, открытые вопросы, находки аудитов и приёмка. Метки: `audit`,
 `owner-decision`, `acceptance`, `priority:p2`, `priority:p3`. В `status.md` список
 НЕ дублировать — там только ссылки на трекер.
+
+Два закреплённых singleton-issue (ADR-0026, конфиг — `.github/lexor-context-store.json`):
+**#12 🔄 STATE/HANDOFF** (метка `status`, маркер `lexor-state-singleton`) и
+**#11 📌 CONTEXT** (метка `context`, маркер `lexor-context-singleton`). Тело STATE —
+только типизированные указатели, без прозы; проза и решения — в связанных issue,
+`docs/operations/` и LightRAG. Второй такой issue не заводить: резолвить по маркеру.
 
 Linear (org Lexor54, команда **FUN**, проект «Pissuarius v1») — архив: 9 майлстоунов
 M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, новые задачи туда не заводим.
@@ -48,11 +58,13 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
 
 ## close_session
 
-- `close_session.task_mode = hybrid`. Единственный живой трекер — **GitHub Issues**
-  этого репозитория: туда идут и задачи, и открытые вопросы, и находки аудитов.
-  Linear закрыт (FUN-1…FUN-26 Done) и остаётся архивом истории M1–M9, новые задачи
-  там не заводим. `status.md` — офлайн-снапшот состояния (фаза, майлстоуны, прод,
-  блокеры) со ссылками на трекер; список задач в него НЕ копировать.
+- `close_session.task_mode = github_state` — контекст-стор ADR-0026 на двух закреплённых
+  issue (#12 STATE/HANDOFF, #11 CONTEXT), конфиг `.github/lexor-context-store.json`.
+  Задачи, вопросы и находки аудитов — GitHub Issues; Linear закрыт и остаётся архивом.
+- **Отклонение от ADR-0026 (решение владельца 2026-07-25):** `status.md` НЕ выводится из
+  игры и tombstone не ставится — он остаётся офлайн-снапшотом состояния (фаза, майлстоуны,
+  прод, блокеры) со ссылками на трекер. Список задач в него не копировать.
+  `.planning/.continue-here.md` тоже остаётся: развёрнутый хэндофф для новой сессии.
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
 - `close_session.context_hygiene = ask`

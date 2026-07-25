@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "min_reader_version": 2,
+  "state_issue": 12,
+  "context_issue": 11,
+  "tombstone_verified_cycles": 0,
+  "mfa_profile": "typed-pointer-v1",
+  "labels": {
+    "status_label_id": "LA_kwDOThjxCc8AAAACtTU4MA",
+    "context_label_id": "LA_kwDOThjxCc8AAAACtTU4VQ",
+    "taxonomy": [
+      { "id": "LA_kwDOThjxCc8AAAACtA_ylA", "current_name": "bug", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtA_ysQ", "current_name": "enhancement", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtA_ynA", "current_name": "documentation", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtTN4Tw", "current_name": "audit", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtTN4cg", "current_name": "owner-decision", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtTN4ng", "current_name": "acceptance", "kind": "type" },
+      { "id": "LA_kwDOThjxCc8AAAACtTN40g", "current_name": "priority:p2", "kind": "area" },
+      { "id": "LA_kwDOThjxCc8AAAACtTN47g", "current_name": "priority:p3", "kind": "area" }
+    ]
+  }
+}
