@@ -84,14 +84,27 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   в комментариях. В теле нет произвольного текста: каждое значение должно попадать в свой
   типизированный формат (дата, SHA, `repo#N`, LightRAG-путь + `track:`,
   `knowledge.<table>:<uuid>`, `ci:`/`tests:`/`codex:`-токены).
-- **Гейт — fail-closed и ДО записи.** Проверяется КАНДИДАТ, а не то, что уже опубликовано:
-  1. собрать новое тело в файл (например `/tmp/state-body.md`);
-  2. `python3 ~/.claude/skills/close-session/validate_state_mfa.py --file /tmp/state-body.md --profile typed-pointer-v1 --reader-version 2`
-     — путь передаётся именно через `--file`: голый позиционный аргумент означает только
-     `-` (stdin), с путём файл не читается и проверка «падает» по пустому телу. Без
-     `--profile` валидатор тоже откажет;
-  3. **только при exit 0** — `gh issue edit 12 --body-file /tmp/state-body.md`;
-  4. verify-after-write: `… validate_state_mfa.py --issue 12 --profile typed-pointer-v1 --reader-version 2`.
+- **Гейт — fail-closed, ДО записи, без следов.** Проверяется КАНДИДАТ, а не то, что уже
+  опубликовано; временный файл создаётся `mktemp` с правами 0600 и снимается в `trap`,
+  чтобы отклонённое тело не осталось лежать в предсказуемом `/tmp`:
+
+  ```bash
+  tmp=$(mktemp -t state-body) && chmod 600 "$tmp"
+  back="$tmp.back"; trap 'rm -f "$tmp" "$back"' EXIT
+  # …сформировать кандидата в "$tmp"…
+  V=~/.claude/skills/close-session/validate_state_mfa.py
+  python3 "$V" --file "$tmp" --profile typed-pointer-v1 --reader-version 2 || exit 1
+  gh issue edit 12 --body-file "$tmp"
+  gh issue view 12 --json body --jq .body > "$back"
+  diff -u "$tmp" "$back" || echo "КЛОББЕР: опубликованное тело не совпало с кандидатом"
+  python3 "$V" --file "$back" --profile typed-pointer-v1 --reader-version 2
+  ```
+
+  Путь идёт через `--file`: голый позиционный аргумент означает только `-` (stdin), с
+  путём файл не читается и проверка «проходит» по пустому телу. Без `--profile` валидатор
+  откажет. Настоящий verify-after-write — именно `diff` кандидата с перечитанным телом:
+  повторный прогон валидатора по `--issue` подтвердит лишь схему и пропустит чужую
+  валидную перезапись.
   Валидатор живёт в скилле, а не в репо: гейт, который репозиторий может подменить на
   `return 0`, не гейт. **Скилла нет под рукой — тело #12 не трогаем вообще**: ручная сверка
   имён полей проверяет не то (валидатор смотрит ещё типы значений, обязательные поля,
