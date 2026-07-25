@@ -748,30 +748,36 @@ KNNNNK
 
 Текст (RU):
 
-> Давным-давно, в соседнем туалете…
+> Давным-давно, в очень-очень соседнем туалете…
 >
-> Галактика ПИССУАРИУС в опасности. Из Канализационного рукава выползла
-> армада живой сантехники: туалеты, писсуары, тараканы и ходячие какахи.
+> Галактика ПИССУАРИУС пала за одну ночь. Из Канализационного рукава
+> хлынула армада живой сантехники: тараканы-камикадзе, ходячие какахи
+> и туалеты в броне из трёх слоёв фаянса.
 >
-> Их ведут ПЯТЬ ВЛАДЫК СМЫВА — от грозного СУПЕР-ТУАЛЕТА до загадочного
-> Злого Сантехника ПЕССИМАРИО.
+> Ими правят ПЯТЬ ВЛАДЫК СМЫВА. Девиз краток: «Смоем всех». Во главе —
+> СУПЕР-ТУАЛЕТ, а в тени, с разводным ключом наперевес, Злой Сантехник
+> ПЕССИМАРИО.
 >
-> Галактический флот сдался без боя: у солдат были носы. Единственный,
-> кто не чувствует запаха, — пилот истребителя «ПИССУАР-1». Он уже летит.
+> Галактический флот сдался без единого выстрела: у солдат были носы.
+> Уцелел один пилот — он в детстве уронил обоняние в унитаз. Позывной
+> ПИССУАР-1. Он не герой. Он просто единственный, кому не противно.
 
 Текст (EN):
 
-> Long ago, in the bathroom next door…
+> Long, long ago, in the bathroom right next door…
 >
-> The galaxy PISSUARIUS is in danger. From the Sewer Arm crawls an armada
-> of living plumbing: toilets, urinals, roaches and walking poops.
+> The galaxy PISSUARIUS fell in a single night. Out of the Sewer Arm
+> poured an armada of living plumbing: kamikaze roaches, walking poops
+> and toilets armored in three layers of porcelain.
 >
-> They are led by the FIVE LORDS OF THE FLUSH — from the dreaded SUPER
-> TOILET to the mysterious Evil Plumber PESSIMARIO.
+> They are ruled by the FIVE LORDS OF THE FLUSH. Their motto is short:
+> "We flush everyone." Up front, the SUPER TOILET; in the shadows,
+> wrench in hand, the Evil Plumber PESSIMARIO.
 >
-> The galactic fleet surrendered without a fight: the soldiers had noses.
-> The only one who cannot smell a thing is the pilot of the starfighter
-> PISSUAR-1. He is already on his way.
+> The galactic fleet surrendered without firing a shot: the soldiers had
+> noses. One pilot survived — as a child he dropped his sense of smell
+> into a toilet. Call sign PISSUAR-1. He is no hero. He is simply the
+> only one who is not disgusted.
 
 ## 14. Состояния и переходы
 
@@ -832,10 +838,10 @@ Boot → Title → Crawl → Game ⇄ Pause → (GameOver → Initials → Title
 | boss_roach_queen | КОРОЛЕВА ТАРАКАНОВ | ROACH QUEEN |
 | boss_plumber | ЗЛОЙ САНТЕХНИК ПЕССИМАРИО | EVIL PLUMBER PESSIMARIO |
 | boss_golden_throne | ЗОЛОТОЙ ТРОН | GOLDEN THRONE |
-| crawl_pre | Давным-давно, в соседнем туалете… | Long ago, in the bathroom next door… |
-| crawl_1 | Галактика ПИССУАРИУС в опасности… (полный текст §13) | The galaxy PISSUARIUS is in danger… (full text §13) |
-| crawl_2 | Их ведут ПЯТЬ ВЛАДЫК СМЫВА… (§13) | They are led by the FIVE LORDS OF THE FLUSH… (§13) |
-| crawl_3 | Галактический флот сдался без боя… (§13) | The galactic fleet surrendered without a fight… (§13) |
+| crawl_pre | Давным-давно, в очень-очень соседнем туалете… | Long, long ago, in the bathroom right next door… |
+| crawl_1 | Галактика ПИССУАРИУС пала за одну ночь… (полный текст §13) | The galaxy PISSUARIUS fell in a single night… (full text §13) |
+| crawl_2 | Ими правят ПЯТЬ ВЛАДЫК СМЫВА… (§13) | They are ruled by the FIVE LORDS OF THE FLUSH… (§13) |
+| crawl_3 | Галактический флот сдался без единого выстрела… (§13) | The galactic fleet surrendered without firing a shot… (§13) |
 | skip_hint | ПРОБЕЛ — ПРОПУСТИТЬ | SPACE — SKIP |
 
 ## 16. Критерии приёмки
