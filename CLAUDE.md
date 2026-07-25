@@ -5,12 +5,14 @@
 
 ## Старт сессии (в этом порядке)
 
-1. **🔄 STATE/HANDOFF — [issue #12](https://github.com/LexorCrypto/FunGame/issues/12)** —
-   единственная точка входа: машинные указатели (`main_sha`, `next`, `active`, `blockers`)
-   и журнал сессий в комментариях.
-2. **📌 CONTEXT — [issue #11](https://github.com/LexorCrypto/FunGame/issues/11)** —
+1. **LightRAG** — глобальное правило воркспейса: первым делом `query_text` (hybrid) по теме
+   первого сообщения, namespace проекта — `pissuarius/`. Порядок ниже — уже про этот репо.
+2. **🔄 STATE/HANDOFF — [issue #12](https://github.com/LexorCrypto/FunGame/issues/12)** —
+   точка входа по репозиторию: машинные указатели (`main_sha`, `next`, `active`,
+   `blockers`) и журнал сессий в комментариях.
+3. **📌 CONTEXT — [issue #11](https://github.com/LexorCrypto/FunGame/issues/11)** —
    стабильный паспорт проекта (куда ведёт указатель `context` из STATE).
-3. Задачи и открытые вопросы — GitHub Issues по `next` / `active`.
+4. Задачи и открытые вопросы — GitHub Issues по `next` / `active`.
 
 ## Документы (читать по мере надобности)
 
@@ -76,13 +78,18 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   зафиксированные номера issue и node-id меток — опора для наших собственных правок по id
   вместо имён. Поле `tombstone_verified_cycles` держим на `0`: форма файла остаётся
   валидной, а tombstone не запускается из-за режима, а не из-за значения поля.
-- **Точка входа сессии — #12 → #11** (см. «Старт сессии» выше). Поддерживать вручную:
-  тело #12 — только машинный блок `AI-CONTEXT` из типизированных указателей
-  (`last_updated`, `main_sha`, `next`, `active`, `blockers`, `context`, `lightrag`,
-  `supabase`, `verification`), проза — только в комментариях. Валидатор
-  `validate_state_mfa.py` живёт в скилле (`~/.claude/skills/close-session/`), а не в репо —
-  так задумано: гейт, который репозиторий может подменить на `return 0`, не гейт. Если
-  скилла под рукой нет, тело сверяется с этим списком полей руками.
+- **Точка входа сессии — #12 → #11** (см. «Старт сессии» выше). Тело #12 — только машинный
+  блок `AI-CONTEXT` из типизированных указателей (`last_updated`, `main_sha`, `next`,
+  `active`, `blockers`, `context`, `lightrag`, `supabase`, `verification`); проза — только
+  в комментариях. В теле не бывает значений — только ссылки, SHA и id.
+- **Гейт перед правкой тела #12 — fail-closed.** Прогнать ровно так:
+  `gh issue view 12 --json body --jq .body | python3 ~/.claude/skills/close-session/validate_state_mfa.py - --profile typed-pointer-v1 --reader-version 2`
+  (без `--profile` валидатор откажет). Валидатор живёт в скилле, а не в репо: гейт,
+  который репозиторий может подменить на `return 0`, не гейт. **Скилла нет под рукой —
+  тело #12 не трогаем вообще** (ручная сверка имён полей проверяет не то: валидатор
+  смотрит ещё типы значений, обязательные поля, заголовок, singleton-маркер и отсутствие
+  постороннего текста, и именно это ловит секрет, случайно попавший в разрешённое поле).
+  После записи — перечитать тело и прогнать валидатор снова.
   `.planning/.continue-here.md` остаётся развёрнутым хэндоффом.
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
