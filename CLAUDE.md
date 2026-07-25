@@ -90,19 +90,19 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
 
   ```bash
   (
-    umask 077                                   # оба файла — только владельцу
-    tmp=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX") || exit 1
-    back=$(mktemp "${TMPDIR:-/tmp}/state-body.XXXXXX") || exit 1   # свой mktemp, не "$tmp.back"
-    trap 'rm -f "$tmp" "$back"' EXIT
+    umask 077
+    R=LexorCrypto/FunGame                       # и запись, и проверка — один и тот же репо
+    d=$(mktemp -d "${TMPDIR:-/tmp}/state.XXXXXX") || exit 1
+    trap 'rm -rf "$d"' EXIT                     # ставим сразу: второй mktemp мог бы упасть
+    tmp="$d/body"; back="$d/back"
     V=~/.claude/skills/close-session/validate_state_mfa.py
+    DEC='import json,sys; sys.stdout.write(json.load(sys.stdin)["body"])'
     # …сформировать кандидата в "$tmp"…
     python3 "$V" --file "$tmp" --profile typed-pointer-v1 --reader-version 2 || exit 1
-    gh issue edit 12 --body-file "$tmp" || exit 1
+    gh issue edit 12 --repo "$R" --body-file "$tmp" || exit 1
     # Побайтово: `gh issue view --jq .body` печатает через Fprintln и добавляет свой
-    # перевод строки, а нормализация хвостовых LF скрыла бы настоящую подмену концовки.
-    # Поэтому тело берём из сырого JSON и сравниваем `cmp`, а не `diff`.
-    DEC='import json,sys; sys.stdout.write(json.load(sys.stdin)["body"])'
-    gh api repos/LexorCrypto/FunGame/issues/12 | python3 -c "$DEC" > "$back" || exit 1
+    # перевод строки, а нормализация хвостовых LF скрыла бы подмену концовки.
+    gh api "repos/$R/issues/12" | python3 -c "$DEC" > "$back" || exit 1
     cmp -s "$tmp" "$back" || { echo "КЛОББЕР: тело не совпало с кандидатом" >&2; exit 1; }
     python3 "$V" --file "$back" --profile typed-pointer-v1 --reader-version 2
   )
