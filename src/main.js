@@ -68,6 +68,8 @@ class PlaygroundScene extends Phaser.Scene {
     };
     // SPEC §14: 3 смерти → GameOver-сцена с итоговым счётом и волной.
     this.gameOverHandler = () => {
+      // Пауза не должна встрять между постановкой перехода и его исполнением.
+      this.leaving = true;
       this.scene.start('end', {
         score: this.scoring.score,
         wave: this.waveDirector.index + 1,
@@ -186,6 +188,12 @@ class PlaygroundScene extends Phaser.Scene {
   // достижим из паузы.
   createPauseOverlay() {
     this.paused = false;
+    // Переход из сцены уже поставлен в очередь ScenePlugin (game-over или Q):
+    // сцена ещё RUNNING, поэтому isActive() гонку не закрывает — очередь
+    // выполнилась бы как stop playground → start end → pause playground, и
+    // Phaser напечатал бы «Cannot pause non-running Scene» (codex-аудит
+    // 98b4734, [P3]; §16 требует чистую консоль).
+    this.leaving = false;
 
     const dim = this.add.rectangle(240, 135, 480, 270, 0x000000, 0.65);
     const title = this.add
@@ -209,13 +217,14 @@ class PlaygroundScene extends Phaser.Scene {
       // очередь ScenePlugin, но слушатель живёт до следующего кадра): вызов
       // pause() на неработающей сцене печатает ошибку в консоль, а §16
       // требует чистую консоль (codex-аудит a669d93, [P3]).
-      if (!(this.paused ? this.scene.isPaused() : this.scene.isActive())) {
+      if (this.leaving || !(this.paused ? this.scene.isPaused() : this.scene.isActive())) {
         return;
       }
       if (event.code === 'Escape') {
         this.togglePause();
       } else if (event.code === 'KeyQ' && this.paused) {
         this.setPaused(false);
+        this.leaving = true;
         this.scene.start('title');
       }
     };
@@ -223,7 +232,14 @@ class PlaygroundScene extends Phaser.Scene {
     // SHUTDOWN И DESTROY: при `game.destroy()` / `SceneManager.remove()` Phaser
     // шлёт только DESTROY, и слушатель окна пережил бы игру (codex-аудит
     // a669d93, [P2]). removeEventListener идемпотентен — двойной вызов безвреден.
-    const removeKeyHandler = () => window.removeEventListener('keydown', this.pauseKeyHandler);
+    // Снятие снимает и само себя с обоих событий: SHUTDOWN отрабатывает при
+    // каждом уходе из сцены, а висящий `once(DESTROY)` пережил бы его и копился
+    // бы по одному за цикл Game → Title (codex-аудит 98b4734, [P3]).
+    const removeKeyHandler = () => {
+      window.removeEventListener('keydown', this.pauseKeyHandler);
+      this.events.off(Phaser.Scenes.Events.SHUTDOWN, removeKeyHandler);
+      this.events.off(Phaser.Scenes.Events.DESTROY, removeKeyHandler);
+    };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeKeyHandler);
     this.events.once(Phaser.Scenes.Events.DESTROY, removeKeyHandler);
   }
