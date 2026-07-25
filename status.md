@@ -55,7 +55,7 @@
 Ведутся только в GitHub Issues — решение владельца 2026-07-25. Здесь список не
 дублируется, чтобы не расходиться с трекером:
 
-- [все открытые](https://github.com/LexorCrypto/FunGame/issues) (на 2026-07-25 — десять)
+- [все открытые](https://github.com/LexorCrypto/FunGame/issues) — счётчик и состав смотреть там, здесь намеренно не дублируются
 - [ждут решения владельца](https://github.com/LexorCrypto/FunGame/issues?q=is%3Aopen+label%3Aowner-decision)
 - [находки аудитов](https://github.com/LexorCrypto/FunGame/issues?q=is%3Aopen+label%3Aaudit)
 - [приёмка §16](https://github.com/LexorCrypto/FunGame/issues?q=is%3Aopen+label%3Aacceptance)
