@@ -94,6 +94,15 @@ export class BossGoldenThrone extends BossBase {
     this.swayPhase = 0;
     this.sequenceX = this.x; // x, «замороженный» на время плюха
 
+    // SPEC §6, модификаторы бесконечного цикла — применяются и к боссу цикла.
+    // Аналог есть у двух из трёх: swayPeriod ×0.9^c (мин 1.4) и
+    // bulletSpeed ×1.1^c (веер, дуги, ключ). diveInterval аналога не имеет:
+    // у Трона нет формации и дайв-дирижёра; каданс призыва отродий — не dive.
+    // Очки ×c начисляет Scoring по WaveDirector.cycle. Значения по умолчанию
+    // (cycle = 0) — кампанейские: applyCycle() их не трогает.
+    this.swayPeriod = SWAY_PERIOD;
+    this.cycleBulletMul = 1;
+
     // Ротация: ровно 5 окон, смена без паузы (см. onUpdate). windowTimer
     // копится всегда; при смене окна кадансы атак сбрасываются (resetCadence).
     this.attackIndex = ATTACK_FAN;
@@ -149,6 +158,16 @@ export class BossGoldenThrone extends BossBase {
     this.speedMul = params.speedMul;
   }
 
+  // Вызывается WaveDirector сразу после конструктора (cycle ≥ 1 только в
+  // бесконечном цикле). Идемпотентен относительно базовых констант.
+  applyCycle(cycle) {
+    if (!cycle || cycle < 1) {
+      return;
+    }
+    this.swayPeriod = Math.max(1.4, SWAY_PERIOD * Math.pow(0.9, cycle));
+    this.cycleBulletMul = Math.pow(1.1, cycle);
+  }
+
   // BossBase.flash() снимает тинт через clearTint() — под непрерывным огнём
   // это гасило бы золотое свечение до следующего тика глоу (§7.6 требует
   // непрерывную тинт-анимацию). Восстанавливаем текущий оттенок после вспышки.
@@ -167,7 +186,7 @@ export class BossGoldenThrone extends BossBase {
     // FUN-25: движение, а не атака). Скорость sway ×speedMul (§7.6 фаза 2:
     // «все скорости ×1.3») — фаза копится инкрементно, смена фазы без скачка.
     if (this.sequenceState === 'idle') {
-      this.swayPhase += ((2 * Math.PI * (delta / 1000)) / SWAY_PERIOD) * this.speedMul;
+      this.swayPhase += ((2 * Math.PI * (delta / 1000)) / this.swayPeriod) * this.speedMul;
       const nx = 240 + SWAY_AMPLITUDE * Math.sin(this.swayPhase);
       this.sequenceX = nx;
       this.setPosition(nx, BASE_Y);
@@ -259,7 +278,7 @@ export class BossGoldenThrone extends BossBase {
 
   // Атака 1 (SPEC §7.6): веер капель — Boss.fireFan один в один.
   fireFan() {
-    const speed = FAN_SPEED * this.speedMul;
+    const speed = FAN_SPEED * this.speedMul * this.cycleBulletMul;
 
     for (let i = 0; i < FAN_COUNT; i += 1) {
       const off = -30 + (60 * i) / (FAN_COUNT - 1);
@@ -286,7 +305,7 @@ export class BossGoldenThrone extends BossBase {
     }
 
     const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-    const speed = ARC_SPEED * this.speedMul;
+    const speed = ARC_SPEED * this.speedMul * this.cycleBulletMul;
 
     for (let i = 0; i < ARC_COUNT; i += 1) {
       const offsetDeg = -ARC_SPREAD_DEG + (2 * ARC_SPREAD_DEG * i) / (ARC_COUNT - 1);
@@ -532,7 +551,7 @@ export class BossGoldenThrone extends BossBase {
     // Прогресс копится инкрементно delta/длительность отрезка — смена фазы
     // (legMs 900 → 900/1.3) посреди полёта не даёт скачка позиции ключа.
     const w = this.wrench;
-    const legMs = WRENCH_FLIGHT_MS_BASE / this.speedMul;
+    const legMs = WRENCH_FLIGHT_MS_BASE / (this.speedMul * this.cycleBulletMul);
     w.progress += delta / legMs;
     const t = Math.min(1, w.progress);
 

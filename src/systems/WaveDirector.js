@@ -116,6 +116,11 @@ export class WaveDirector {
         // Дирижёр владеет жизненным циклом босса: включает его в группу
         // коллизий сцены (контракт фабрики — только сконструировать Boss).
         this.boss = make();
+        // SPEC §6: модификаторы бесконечного цикла касаются и босса цикла
+        // (Золотой Трон) — раньше он оставался неизменным весь цикл
+        // (codex-аудиты 965b18e/830abf5, [P2]). Кампанейские боссы получают
+        // cycle = 0 и остаются как есть.
+        this.boss.applyCycle?.(cycle);
         this.scene.bosses.add(this.boss);
         this.bossDefeated = false;
         this.awaitingClear = false;
