@@ -27,8 +27,14 @@ import { fileURLToPath } from 'node:url';
 const LOOP_TRACKS = ['music_title', 'music_battle', 'music_boss'];
 
 const SILENCE_DB = -50;
-const FADE_S = 0.004; // микро-фейд на краях: стык петли идёт через нуль, без щелчка
+// Микро-фейд на краях: стык петли идёт через нуль, без щелчка. Если короткого
+// не хватает (трек обрезан «по-живому»), берём следующий по списку.
+const FADE_STEPS_S = [0.004, 0.012, 0.03, 0.08];
 const MAX_GAP_MS = 16; // допустимый разрыв петли; сам фейд даёт ~8 ms на двоих
+// Второй критерий SPEC §12: стык петли идёт через нуль. Трек без тишины, но с
+// резким несовпадением первого и последнего семпла, щёлкает каждый круг —
+// одного gapMs мало (codex-аудит 17461e1). Текущие треки дают ≤ 0.00015.
+const MAX_JUMP = 0.001; // доля от полной шкалы (1.0)
 const SAMPLE_RATE = 44100;
 const BITRATE = '128k';
 
@@ -73,9 +79,12 @@ function bounds(file) {
   };
 }
 
-function trim(file, b) {
+// Готовит подрезанный вариант во временный файл и возвращает его путь.
+// Всегда режет из ИСХОДНОГО файла: перебор длины фейда не должен накапливать
+// перекодирование.
+function renderTrim(file, b, fadeS) {
   const duration = b.endS - b.startS;
-  const fadeOutAt = Math.max(0, duration - FADE_S);
+  const fadeOutAt = Math.max(0, duration - fadeS);
   const tmp = `${file}.trim.mp3`;
 
   execFileSync('ffmpeg', [
@@ -83,17 +92,12 @@ function trim(file, b) {
     '-ss', b.startS.toFixed(6),
     '-i', file,
     '-t', duration.toFixed(6),
-    '-af', `afade=t=in:st=0:d=${FADE_S},afade=t=out:st=${fadeOutAt.toFixed(6)}:d=${FADE_S}`,
+    '-af', `afade=t=in:st=0:d=${fadeS},afade=t=out:st=${fadeOutAt.toFixed(6)}:d=${fadeS}`,
     '-c:a', 'libmp3lame', '-b:a', BITRATE, '-ar', String(SAMPLE_RATE),
     tmp,
   ]);
 
-  try {
-    renameSync(tmp, file);
-  } catch (error) {
-    unlinkSync(tmp);
-    throw error;
-  }
+  return tmp;
 }
 
 const args = process.argv.slice(2);
@@ -104,11 +108,12 @@ let failed = false;
 for (const track of LOOP_TRACKS) {
   const file = join(AUDIO_DIR, `${track}.mp3`);
   const before = bounds(file);
-  const needs = force || before.gapMs > MAX_GAP_MS;
+  const needs = force || before.gapMs > MAX_GAP_MS || before.jump > MAX_JUMP;
 
   if (!needs) {
     console.log(
-      `${track}: разрыв петли ${before.gapMs.toFixed(1)} ms (норма ≤ ${MAX_GAP_MS}) — пропуск`,
+      `${track}: разрыв петли ${before.gapMs.toFixed(1)} ms (норма ≤ ${MAX_GAP_MS}), ` +
+        `скачок на стыке ${before.jump.toFixed(5)} (норма ≤ ${MAX_JUMP}) — пропуск`,
     );
     continue;
   }
@@ -116,20 +121,49 @@ for (const track of LOOP_TRACKS) {
   if (checkOnly) {
     console.log(
       `${track}: разрыв петли ${before.gapMs.toFixed(1)} ms ` +
-        `(начало ${before.headQuietMs.toFixed(1)}, хвост ${before.tailQuietMs.toFixed(1)}) — НУЖНА ПОДРЕЗКА`,
+        `(начало ${before.headQuietMs.toFixed(1)}, хвост ${before.tailQuietMs.toFixed(1)}), ` +
+        `скачок на стыке ${before.jump.toFixed(5)} — НУЖНА ПОДРЕЗКА`,
     );
     failed = true;
     continue;
   }
 
-  trim(file, before);
+  // Короткий фейд достаточен, когда края трека и так тихие. Если трек обрезан
+  // «по-живому», 4 ms не доводят стык до нуля — удлиняем, пока не уложимся.
+  let applied = null;
+  let candidate = null;
+  for (const fadeS of FADE_STEPS_S) {
+    const tmp = renderTrim(file, before, fadeS);
+    const measured = bounds(tmp);
+    unlinkSync(tmp);
+    candidate = { fadeS, measured };
+    if (measured.gapMs <= MAX_GAP_MS && measured.jump <= MAX_JUMP) {
+      applied = candidate;
+      break;
+    }
+  }
+
+  const chosen = applied ?? candidate;
+  const tmp = renderTrim(file, before, chosen.fadeS);
+  try {
+    renameSync(tmp, file);
+  } catch (error) {
+    unlinkSync(tmp);
+    throw error;
+  }
+
   const after = bounds(file);
   console.log(
-    `${track}: ${before.gapMs.toFixed(1)} ms → ${after.gapMs.toFixed(1)} ms, ` +
-      `скачок на стыке ${after.jump.toFixed(5)}`,
+    `${track}: разрыв ${before.gapMs.toFixed(1)} → ${after.gapMs.toFixed(1)} ms, ` +
+      `скачок ${before.jump.toFixed(5)} → ${after.jump.toFixed(5)}, ` +
+      `фейд ${(chosen.fadeS * 1000).toFixed(0)} ms`,
   );
-  if (after.gapMs > MAX_GAP_MS) {
-    console.error(`${track}: ПОСЛЕ подрезки разрыв всё ещё ${after.gapMs.toFixed(1)} ms`);
+  if (!applied) {
+    console.error(
+      `${track}: ПОСЛЕ подрезки разрыв ${after.gapMs.toFixed(1)} ms, ` +
+        `скачок ${after.jump.toFixed(5)} — вне нормы даже при фейде ` +
+        `${(FADE_STEPS_S.at(-1) * 1000).toFixed(0)} ms; трек нужно перегенерировать`,
+    );
     failed = true;
   }
 }
