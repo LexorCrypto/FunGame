@@ -76,9 +76,14 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   зафиксированные номера issue и node-id меток — опора для наших собственных правок по id
   вместо имён. Поле `tombstone_verified_cycles` держим на `0`: форма файла остаётся
   валидной, а tombstone не запускается из-за режима, а не из-за значения поля.
-- **Точка входа сессии — #12 → #11** (см. «Старт сессии» выше). Поддерживать их вручную:
-  тело #12 обязано проходить `validate_state_mfa.py --profile typed-pointer-v1`, проза —
-  только в комментариях. `.planning/.continue-here.md` остаётся развёрнутым хэндоффом.
+- **Точка входа сессии — #12 → #11** (см. «Старт сессии» выше). Поддерживать вручную:
+  тело #12 — только машинный блок `AI-CONTEXT` из типизированных указателей
+  (`last_updated`, `main_sha`, `next`, `active`, `blockers`, `context`, `lightrag`,
+  `supabase`, `verification`), проза — только в комментариях. Валидатор
+  `validate_state_mfa.py` живёт в скилле (`~/.claude/skills/close-session/`), а не в репо —
+  так задумано: гейт, который репозиторий может подменить на `return 0`, не гейт. Если
+  скилла под рукой нет, тело сверяется с этим списком полей руками.
+  `.planning/.continue-here.md` остаётся развёрнутым хэндоффом.
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
 - `close_session.context_hygiene = ask`
