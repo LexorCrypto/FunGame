@@ -96,7 +96,7 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
   python3 "$V" --file "$tmp" --profile typed-pointer-v1 --reader-version 2 || exit 1
   gh issue edit 12 --body-file "$tmp"
   gh issue view 12 --json body --jq .body > "$back"
-  diff -u "$tmp" "$back" || echo "КЛОББЕР: опубликованное тело не совпало с кандидатом"
+  diff -u "$tmp" "$back" || { echo "КЛОББЕР: тело не совпало с кандидатом" >&2; exit 1; }
   python3 "$V" --file "$back" --profile typed-pointer-v1 --reader-version 2
   ```
 
