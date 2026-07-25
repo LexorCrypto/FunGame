@@ -48,7 +48,10 @@ M1–M9 (этапы §17 PRD), 26 атомарных issues FUN-1…FUN-26 — �
 
 ## close_session
 
-- `close_session.task_mode = hybrid` (задачи — GitHub Issues; `status.md` — снапшот со ссылками)
+- `close_session.task_mode = hybrid` — задачи и открытые вопросы живут в GitHub Issues;
+  `status.md` остаётся офлайн-снапшотом состояния (фаза, что сделано по майлстоунам,
+  прод, блокеры) и ссылается на трекер по меткам. Список задач в снапшот НЕ копировать:
+  дублирование — это ровно то, что владелец просил убрать 2026-07-25.
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
 - `close_session.context_hygiene = ask`
