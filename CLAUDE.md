@@ -28,6 +28,8 @@ M1–M9 (этапы §17 PRD), 26 атомарных issues FUN-1…FUN-26. Од
   `. K W S G B D P Y O R N n E F`; все строки блока одинаковой длины). Внешних PNG нет.
 - Аудио: офлайн-генерация через ElevenLabs в `assets/audio/`
   (`scripts/generate_audio.mjs`); ключ только из env `ELEVENLABS_API_KEY`.
+  После регенерации луп-треков обязателен `node scripts/trim_music_loops.mjs`
+  (бесшовность §12: генератор оставляет тишину на краях).
 - i18n: все строки из `src/data/i18n.js` (RU/EN), ни одной строки в коде.
 
 ## Жёсткие правила процесса
