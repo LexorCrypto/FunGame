@@ -48,9 +48,9 @@ const ARC_SPREAD_DEG = 8;
 const ARC_GRAVITY_Y = 400;
 
 // Атака 3 «плюх с волной» — последовательность как у BossSuperPoop.
-// stepSequence/onImpact/spawnWave/updateWaves. Тикет FUN-25 помечает ×speedMul
-// только у скорости падения и у роста волны; телеграф и возврат наверх — фиксированные
-// длительности, не масштабируются.
+// stepSequence/onImpact/spawnWave/updateWaves. ×speedMul (§7.6 «все скорости
+// ×1.3») применяется к падению, возврату наверх и росту волны; НЕ масштабируется
+// только телеграф 1.0 s — это окно честности для игрока (коммит 16f9462).
 const PLOP_TELEGRAPH_MS = 1000;
 const PLOP_FALL_MS_BASE = 300; // тикет: «×speedMul быстрее: 300/speedMul ms»
 const PLOP_RETURN_MS = 2000;
@@ -461,7 +461,9 @@ export class BossGoldenThrone extends BossBase {
       const e = b.enemy;
 
       if (!e.active) {
-        // Убит игроком — takeDamage()→die() уже отыграли взрыв и событие.
+        // Убит игроком — takeDamage()→die() уже отыграли взрыв и событие,
+        // но оставили спрайт в scene.enemies: уничтожаем (аудит f894508, [P2]).
+        e.destroy();
         this.brood.splice(i, 1);
         continue;
       }
@@ -472,10 +474,10 @@ export class BossGoldenThrone extends BossBase {
       const y = b.y0 + b.dist;
 
       if (y >= 270) {
-        // Ушёл за нижнюю границу поля — тихо снять, без взрыва.
-        e.setActive(false);
-        e.setVisible(false);
-        e.body.enable = false;
+        // Ушёл за нижнюю границу поля — тихо снять, без взрыва. Именно
+        // destroy(), а не деактивация: иначе отродья копятся в scene.enemies
+        // и display list весь бесконечный цикл (codex-аудит f894508, [P2]).
+        e.destroy();
         this.brood.splice(i, 1);
         continue;
       }

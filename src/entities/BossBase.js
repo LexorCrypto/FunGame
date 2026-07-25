@@ -53,7 +53,10 @@ export class BossBase extends Phaser.Physics.Arcade.Sprite {
       .setOrigin(0, 0.5)
       .setDepth(1001);
 
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
+    // Снимается в preDestroy: иначе ранняя гибель босса оставляет слушатель
+    // сцены, удерживающий экземпляр (codex-аудит M4, [P3]).
+    this.shutdownHandler = () => this.cleanup();
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdownHandler);
   }
 
   // Вызывается WaveDirector каждый кадр. Проверяет переход фазы, делегирует
@@ -152,6 +155,7 @@ export class BossBase extends Phaser.Physics.Arcade.Sprite {
   }
 
   preDestroy() {
+    this.scene?.events?.off(Phaser.Scenes.Events.SHUTDOWN, this.shutdownHandler);
     this.cleanup();
     super.preDestroy();
   }

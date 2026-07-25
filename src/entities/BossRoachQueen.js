@@ -66,7 +66,9 @@ export class BossRoachQueen extends BossBase {
       const e = b.enemy;
 
       if (!e.active) {
-        // Убит игроком — takeDamage()→die() уже отыграли взрыв и событие.
+        // Убит игроком — takeDamage()→die() уже отыграли взрыв и событие,
+        // но оставили спрайт в scene.enemies: уничтожаем (аудит f894508, [P2]).
+        e.destroy();
         this.brood.splice(i, 1);
         continue;
       }
@@ -76,10 +78,10 @@ export class BossRoachQueen extends BossBase {
       const y = b.y0 + 170 * b.t;
 
       if (y >= 270) {
-        // Ушёл за нижнюю границу поля — тихо снять, без взрыва.
-        e.setActive(false);
-        e.setVisible(false);
-        e.body.enable = false;
+        // Ушёл за нижнюю границу поля — тихо снять, без взрыва. Именно
+        // destroy(), а не деактивация: иначе отродья остаются в scene.enemies
+        // и в display list до конца сцены (codex-аудит f894508, [P2]).
+        e.destroy();
         this.brood.splice(i, 1);
         continue;
       }

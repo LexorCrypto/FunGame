@@ -232,6 +232,10 @@ export class WaveDirector {
     // SPEC §9: волна зачищена — событие для бонуса чистой волны.
     this.scene.events.emit('wave-cleared', { act: this.currentAct, waveNumber: this.index + 1 });
     this.awaitingClear = false;
+    // Побеждённый босс: die() только деактивирует спрайт — уничтожаем его
+    // здесь, иначе в бесконечном цикле каждый новый Трон навсегда остаётся
+    // в scene.bosses и в display list (codex-аудит f894508, [P2]).
+    this.boss?.destroy();
     this.boss = null;
     this.index += 1;
     this.loadWave(this.index);

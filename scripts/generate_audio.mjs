@@ -49,6 +49,16 @@ export const MANIFEST = [...SFX, ...MUSIC];
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
 
 /**
+ * Фактическая длительность SFX, уходящая в API: `/v1/sound-generation`
+ * принимает `duration_seconds` только в [0.5, 30], а в таблице SPEC §12 есть
+ * значения 0.2–0.4 s. Клампуем к «ближайшему допустимому эквиваленту»
+ * (правило FUN-21); в MANIFEST остаются дословные значения §12.
+ */
+export function sfxDurationSeconds(entry) {
+  return Math.min(30, Math.max(0.5, entry.durationSeconds));
+}
+
+/**
  * Строит {url, init} для fetch() по одной записи MANIFEST (SPEC §12: эндпоинты
  * `/v1/sound-generation` для SFX и `/v1/music` для музыки, output_format
  * mp3_44100_128). Ключ передаётся только в заголовке запроса, никогда не
@@ -62,10 +72,7 @@ export function buildRequest(entry, apiKey) {
   };
 
   if (entry.kind === 'sfx') {
-    // API принимает duration_seconds только в [0.5, 30] («ближайший эквивалент»
-    // по SPEC §12 / тикету FUN-21): табличные 0.2–0.4 s клампуются к 0.5 —
-    // в MANIFEST остаются дословные значения §12.
-    const durationSeconds = Math.min(30, Math.max(0.5, entry.durationSeconds));
+    const durationSeconds = sfxDurationSeconds(entry);
     return {
       url: `${ELEVENLABS_BASE}/sound-generation?output_format=mp3_44100_128`,
       init: {
@@ -129,8 +136,11 @@ function selectEntries(flags) {
   return selected;
 }
 
+// Показывает то, что реально уйдёт в API (для SFX — уже клампованное
+// значение): раньше --dry-run печатал табличные 0.2–0.4 s и вводил в
+// заблуждение (codex-аудит c2ba43e, [P3]).
 function describeLength(entry) {
-  return entry.kind === 'sfx' ? `${entry.durationSeconds}s` : `${entry.lengthMs}ms`;
+  return entry.kind === 'sfx' ? `${sfxDurationSeconds(entry)}s` : `${entry.lengthMs}ms`;
 }
 
 function describeEndpoint(entry) {
