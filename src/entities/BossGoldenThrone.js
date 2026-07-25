@@ -111,6 +111,7 @@ export class BossGoldenThrone extends BossBase {
     // начатое движение, не старт атаки (тикет FUN-25).
     this.sequenceState = 'idle';
     this.seqTimer = 0;
+    this.seqProgress = 0; // инкрементный прогресс шагов падения/возврата (×speedMul)
     this.waves = []; // { rect, innerX, dir, width, maxWidth, lingering, lingerTimer }
 
     // Отродья (BossRoachQueen): { enemy, x0, y0, t }. Спуск идёт всегда, даже
@@ -163,9 +164,10 @@ export class BossGoldenThrone extends BossBase {
   onUpdate(time, delta) {
     // Движение: sway в простое, либо шаг активной последовательности плюха
     // заменяет его — как у BossSuperPoop. НЕ гейтится attacksPaused (тикет
-    // FUN-25: движение, а не атака).
+    // FUN-25: движение, а не атака). Скорость sway ×speedMul (§7.6 фаза 2:
+    // «все скорости ×1.3») — фаза копится инкрементно, смена фазы без скачка.
     if (this.sequenceState === 'idle') {
-      this.swayPhase += (2 * Math.PI * (delta / 1000)) / SWAY_PERIOD;
+      this.swayPhase += ((2 * Math.PI * (delta / 1000)) / SWAY_PERIOD) * this.speedMul;
       const nx = 240 + SWAY_AMPLITUDE * Math.sin(this.swayPhase);
       this.sequenceX = nx;
       this.setPosition(nx, BASE_Y);
@@ -311,12 +313,14 @@ export class BossGoldenThrone extends BossBase {
     this.seqTimer = 0;
   }
 
-  // Продвигает шаг последовательности плюха на delta мс — BossSuperPoop.stepSequence,
-  // с ×speedMul на длительность падения (тикет FUN-25).
+  // Продвигает шаг последовательности плюха. Падение и возврат — «скорости»
+  // (§7.6 фаза 2: ×1.3): прогресс копится инкрементно delta/длительность, так
+  // смена фазы посреди шага не даёт скачка позиции. Телеграф 1.0 s НЕ
+  // масштабируется намеренно: это окно честности перед ударом (§7-паттерн
+  // телеграфов), а не скорость движения.
   stepPlop(delta) {
-    this.seqTimer += delta;
-
     if (this.sequenceState === 'telegraph') {
+      this.seqTimer += delta;
       const jx = this.sequenceX + Phaser.Math.Between(-2, 2);
       const jy = BASE_Y + Phaser.Math.Between(-2, 2);
       this.setPosition(jx, jy);
@@ -324,37 +328,35 @@ export class BossGoldenThrone extends BossBase {
 
       if (this.seqTimer >= PLOP_TELEGRAPH_MS) {
         this.sequenceState = 'falling';
-        this.seqTimer = 0;
+        this.seqProgress = 0;
       }
       return;
     }
 
     if (this.sequenceState === 'falling') {
       // Тикет FUN-25: падение до y=200 за 0.3 s, ×speedMul быстрее в фазе 2.
-      const fallMs = PLOP_FALL_MS_BASE / this.speedMul;
-      const t = Math.min(1, this.seqTimer / fallMs);
+      this.seqProgress += delta / (PLOP_FALL_MS_BASE / this.speedMul);
+      const t = Math.min(1, this.seqProgress);
       const ny = Phaser.Math.Linear(BASE_Y, PLOP_FLOOR_Y, t);
       this.setPosition(this.sequenceX, ny);
       this.body.reset(this.sequenceX, ny);
 
-      if (this.seqTimer >= fallMs) {
-        this.setPosition(this.sequenceX, PLOP_FLOOR_Y);
-        this.body.reset(this.sequenceX, PLOP_FLOOR_Y);
+      if (t >= 1) {
         this.onImpact();
         this.sequenceState = 'returning';
-        this.seqTimer = 0;
+        this.seqProgress = 0;
       }
       return;
     }
 
-    // returning — фиксированная длительность 2.0 s, тикет FUN-25 не помечает
-    // её ×speedMul (в отличие от падения).
-    const t = Math.min(1, this.seqTimer / PLOP_RETURN_MS);
+    // returning — тоже движение босса: 2.0 s / speedMul (§7.6 «все скорости»).
+    this.seqProgress += delta / (PLOP_RETURN_MS / this.speedMul);
+    const t = Math.min(1, this.seqProgress);
     const ny = Phaser.Math.Linear(PLOP_FLOOR_Y, BASE_Y, t);
     this.setPosition(this.sequenceX, ny);
     this.body.reset(this.sequenceX, ny);
 
-    if (this.seqTimer >= PLOP_RETURN_MS) {
+    if (t >= 1) {
       this.sequenceState = 'idle';
       this.seqTimer = 0;
     }
@@ -464,7 +466,7 @@ export class BossGoldenThrone extends BossBase {
         continue;
       }
 
-      b.t += delta / 1000;
+      b.t += (delta / 1000) * this.speedMul; // зигзаг тоже скорость (§7.6 ×1.3)
       b.dist += (170 * this.speedMul * delta) / 1000;
       const x = b.x0 + 40 * Math.sin(6 * b.t);
       const y = b.y0 + b.dist;
@@ -505,7 +507,7 @@ export class BossGoldenThrone extends BossBase {
     this.wrench = {
       sprite: p,
       phase: 'out',
-      elapsed: 0,
+      progress: 0,
       startX: this.x,
       startY: this.y,
       targetX,
@@ -525,12 +527,14 @@ export class BossGoldenThrone extends BossBase {
       return;
     }
 
+    // Прогресс копится инкрементно delta/длительность отрезка — смена фазы
+    // (legMs 900 → 900/1.3) посреди полёта не даёт скачка позиции ключа.
     const w = this.wrench;
     const legMs = WRENCH_FLIGHT_MS_BASE / this.speedMul;
-    w.elapsed += delta;
+    w.progress += delta / legMs;
+    const t = Math.min(1, w.progress);
 
     if (w.phase === 'out') {
-      const t = Math.min(1, w.elapsed / legMs);
       const x = Phaser.Math.Linear(w.startX, w.targetX, t);
       const y = Phaser.Math.Linear(w.startY, w.targetY, t);
       w.sprite.setPosition(x, y);
@@ -538,14 +542,13 @@ export class BossGoldenThrone extends BossBase {
 
       if (t >= 1) {
         w.phase = 'back';
-        w.elapsed = 0;
+        w.progress = 0;
         w.farX = x;
         w.farY = y;
       }
       return;
     }
 
-    const t = Math.min(1, w.elapsed / legMs);
     const x = Phaser.Math.Linear(w.farX, this.x, t);
     const y = Phaser.Math.Linear(w.farY, this.y, t);
     w.sprite.setPosition(x, y);
