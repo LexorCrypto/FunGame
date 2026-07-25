@@ -72,6 +72,10 @@ export class Scoring {
     this.score = 0;
     this.bestStored = loadHiscores()[0]?.score ?? 0;
 
+    // SPEC §6: бесконечный цикл — очки ×c. 0 = кампания (множитель 1);
+    // выставляет WaveDirector.loadWave при входе в цикл.
+    this.cycle = 0;
+
     const font = { fontFamily: 'monospace', fontSize: '8px', color: '#f4f4f4' };
 
     // HUD (SPEC §1, y 0–20).
@@ -117,20 +121,25 @@ export class Scoring {
     this.popup(`+${points}`, x, y, '#f4f4f4');
   }
 
+  // SPEC §6: множитель очков бесконечного цикла (кампания — ×1).
+  get cycleMultiplier() {
+    return this.cycle > 0 ? this.cycle : 1;
+  }
+
   addEnemyKill(enemy, diving) {
     // SPEC §7.4: у отродий Королевы задано фиксированное число очков
     // (enemy.points = 50), иначе — по таблице §4 с ×2 за пикирование (§9).
     const points = enemy.points != null ? enemy.points : enemyKillPoints(enemy.type, diving);
-    this.addPoints(points, enemy.x, enemy.y);
+    this.addPoints(points * this.cycleMultiplier, enemy.x, enemy.y);
   }
 
   addBoss(boss) {
-    this.addPoints(boss.points ?? 0, boss.x, boss.y);
+    this.addPoints((boss.points ?? 0) * this.cycleMultiplier, boss.x, boss.y);
   }
 
-  // SPEC §9: бонус чистой волны +250×акт, всплывает по центру.
+  // SPEC §9: бонус чистой волны +250×акт (в цикле — ещё ×c, §6), всплывает по центру.
   addCleanWave(act) {
-    const bonus = 250 * act;
+    const bonus = 250 * act * this.cycleMultiplier;
     this.score += bonus;
     this.popup(t('wave_clear', { bonus }), 240, 150, '#ffd94d');
   }

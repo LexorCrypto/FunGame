@@ -75,6 +75,12 @@ export class WaveDirector {
   loadWave(index) {
     const { wave, waveNumber, act, cycle, cyclePos } = this.resolveWave(index);
 
+    // SPEC §6: очки ×c в бесконечном цикле — сообщаем скорингу текущий цикл
+    // (0 в кампании → множитель 1).
+    if (this.scene.scoring) {
+      this.scene.scoring.cycle = cycle;
+    }
+
     // Переход в бесконечный цикл (SPEC §14): при входе в цикл — баннер
     // «БЕСКОНЕЧНЫЙ ЦИКЛ c»; самому первому входу предшествует «ПОБЕДА!» 3.0 s.
     if (cycle > 0 && cyclePos === 0) {

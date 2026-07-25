@@ -11,6 +11,7 @@ import { BossBigMacaque } from './entities/BossBigMacaque.js';
 import { BossSuperPoop } from './entities/BossSuperPoop.js';
 import { BossRoachQueen } from './entities/BossRoachQueen.js';
 import { BossPlumber } from './entities/BossPlumber.js';
+import { BossGoldenThrone } from './entities/BossGoldenThrone.js';
 import { WaveDirector } from './systems/WaveDirector.js';
 import { Scoring } from './systems/Scoring.js';
 import { initAudio, getAudio } from './systems/Audio.js';
@@ -163,6 +164,8 @@ class PlaygroundScene extends Phaser.Scene {
         superPoop: () => new BossSuperPoop(this, 'superPoop'),
         roachQueen: () => new BossRoachQueen(this, 'roachQueen'),
         plumber: () => new BossPlumber(this, 'plumber'),
+        // SPEC §7.6: босс бесконечного цикла (FUN-25).
+        goldenThrone: () => new BossGoldenThrone(this, 'goldenThrone'),
       },
     });
     this.waveDirector.start();
