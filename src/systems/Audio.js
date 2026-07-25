@@ -221,6 +221,12 @@ let audioSystem = null;
 export function initAudio(game) {
   if (!audioSystem) {
     audioSystem = new AudioSystem(game);
+    // Синглтон привязан к КОНКРЕТНОЙ игре: без сброса повторный initAudio()
+    // после game.destroy() вернул бы систему уничтоженной игры (и удерживал бы
+    // её граф объектов) — codex-аудиты 0037612/74cbd67, [P3].
+    game.events.once('destroy', () => {
+      audioSystem = null;
+    });
   }
   return audioSystem;
 }
