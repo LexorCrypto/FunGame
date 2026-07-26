@@ -141,3 +141,22 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
 - `close_session.commit_policy = auto`
 - `close_session.push_policy = ask`
 - `close_session.context_hygiene = ask`
+
+Два tier-ключа читает не агент, а `audit_coverage.py`, и его регулярка якорится на **нулевой
+колонке**. Пунктом списка (`- \`close_session…\``) они не парсятся вообще — молча, с откатом
+всего репозитория в full-tier. Поэтому они стоят отдельным блоком, а не в перечислении выше:
+
+```text
+close_session.audit_full_tier_paths = .github/workflows/**, scripts/generate_audio.mjs, .env.example, landing/next.config.js
+close_session.audit_light_tier_paths = docs/**, assets/**, README.md, LICENSE, NOTICE, CONTEXT.md, status.md, .planning/**, src/data/i18n.js
+```
+
+- **full-tier** — CI/деплой (`pages.yml`), офлайн-генерация аудио с ключом
+  `ELEVENLABS_API_KEY` из env (`generate_audio.mjs`, `.env.example` — единственные точки, где
+  репозиторий вообще касается секретов) и конфиг сборки лендинга, который управляет деплоем на
+  GitHub Pages (`next.config.js`). Игра без бэкенда, БД и платежей — auth/money/migrations в
+  репозитории нет, поэтому full-tier список короткий и не раздут искусственно.
+- **light-tier** — документация и заметки сессий/аудитов (`docs/**`), статические аудио-ассеты
+  (`assets/**`), лицензионные и справочные файлы, офлайн-снапшот (`status.md`), развёрнутый
+  хэндофф (`.planning/**`) и таблица переводов RU/EN (`src/data/i18n.js`), которая не влияет
+  на игровую логику.
