@@ -162,7 +162,8 @@ close_session.audit_light_tier_paths = docs/**, assets/**, README.md, LICENSE, N
   (`assets/**`), лицензионные и справочные файлы, офлайн-снапшот (`status.md`) и таблица
   переводов RU/EN (`src/data/i18n.js`), которая не влияет на игровую логику.
 - `.planning/**` в light-tier **не входит намеренно**: `audit_coverage.py` держит
-  `**/.planning/**` в неизменяемом списке `INSTRUCTION_SURFACES` (рядом с `CLAUDE.md`,
-  `AGENTS.md`, `**/skills/**`, `**/hooks/**`), поэтому для хэндоффа классификатор возвращает
-  `full` независимо от `audit_light_tier_paths`. Гейт от этого не дырявый — он остаётся
-  fail-closed, — но запись в light-tier создавала бы неверные ожидания о стоимости аудита.
+  `**/.planning/**` в неизменяемом списке `INSTRUCTION_SURFACES` (рядом с `**/CLAUDE.md`,
+  `**/AGENTS.md`, `**/skills/**`, `**/hooks/**` — шаблоны ловят файл на любой глубине),
+  поэтому для хэндоффа классификатор возвращает `full` независимо от
+  `audit_light_tier_paths`. Гейт от этого не дырявый — он остаётся fail-closed, — но запись
+  в light-tier создавала бы неверные ожидания о стоимости аудита.
