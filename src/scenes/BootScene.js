@@ -6,7 +6,7 @@ export class BootScene extends Phaser.Scene {
     super('boot');
   }
 
-  // SPEC §12: 16 SFX + 6 музыкальных треков из assets/audio/ (сгенерированы
+  // SPEC §12: 19 SFX + 6 музыкальных треков из assets/audio/ (сгенерированы
   // офлайн ElevenLabs, FUN-22). Загрузка включена атомарно с файлами в репо —
   // раньше её не было намеренно (404 в консоли до генерации нарушали бы §16).
   preload() {

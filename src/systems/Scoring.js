@@ -154,9 +154,9 @@ export class Scoring {
     this.addPoints((boss.points ?? 0) * this.cycleMultiplier, boss.x, boss.y);
   }
 
-  // SPEC §9: попадание по боссу. Без popup — при кулдауне 250 ms и двойном
-  // выстреле «+5» всплывал бы до восьми раз в секунду; обратная связь идёт
-  // счётчиком HUD, вспышкой босса и звуком boss_hit.
+  // SPEC §9: попадание по боссу. Без popup — при кулдауне 250 ms «+5» всплывал
+  // бы до восьми раз в секунду с двойным выстрелом и до двенадцати с тройным;
+  // обратная связь идёт счётчиком HUD, вспышкой босса и звуком boss_hit.
   addBossHit() {
     this.score += BOSS_HIT_POINTS * this.cycleMultiplier;
   }
