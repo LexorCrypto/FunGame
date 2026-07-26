@@ -28,7 +28,7 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.subtitleText = this.add
-      .text(centerX, 34, t('subtitle'), {
+      .text(centerX, 0, t('subtitle'), {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#8a94a6',
@@ -37,7 +37,7 @@ export class TitleScene extends Phaser.Scene {
 
     // Заголовок топ-10 (§15: ключ top10).
     this.top10Header = this.add
-      .text(centerX, 50, t('top10'), {
+      .text(centerX, 0, t('top10'), {
         fontFamily: 'monospace',
         fontSize: '10px',
         fontStyle: 'bold',
@@ -45,8 +45,8 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
-    this.hiscoresTop = 62;
     this.hiscoreRowHeight = 8;
+    this.layoutHeader();
     this.renderHiscores();
 
     // Мигающий промпт старта (§15: ключ press_start).
@@ -126,6 +126,17 @@ export class TitleScene extends Phaser.Scene {
     this.starfield.update(delta);
   }
 
+  // Шапка укладывается от фактической высоты глифов, а не по фиксированным y:
+  // у заголовка кегль 24 px, и его нижние выносные элементы заходили на
+  // подзаголовок, прибитый к y=34 (скриншот владельца 2026-07-26). Кегли RU и EN
+  // одинаковы, но метрики моноширинного шрифта зависят от браузера — считаем по
+  // факту и пересчитываем после смены языка.
+  layoutHeader() {
+    this.subtitleText.y = Math.round(this.titleText.y + this.titleText.height + 2);
+    this.top10Header.y = Math.round(this.subtitleText.y + this.subtitleText.height + 4);
+    this.hiscoresTop = Math.round(this.top10Header.y + this.top10Header.height + 2);
+  }
+
   // Перерисовывает топ-10 (§9: [{name, score, wave}], сортировка по убыванию,
   // не более 10 записей). Пустой список — просто заголовок без строк.
   renderHiscores() {
@@ -192,6 +203,7 @@ export class TitleScene extends Phaser.Scene {
     this.insertCoinText.setText(t('insert_coin'));
     this.updateLanguageText();
     this.updateSoundText();
+    this.layoutHeader();
     this.renderHiscores();
   }
 

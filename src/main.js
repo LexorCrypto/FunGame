@@ -153,6 +153,12 @@ class PlaygroundScene extends Phaser.Scene {
       this.playerProjectiles,
       this.bosses,
       (projectile, boss) => {
+        // §9: очки идут за каждое попадание по боссу, а не только за его смерть.
+        // Без всплывающего «+N»: кулдаун 250 ms и двойной выстрел давали бы до
+        // восьми попапов в секунду.
+        if (boss.active) {
+          this.scoring.addBossHit();
+        }
         boss.takeDamage(1);
         projectile.deactivate();
       },
@@ -278,11 +284,11 @@ class PlaygroundScene extends Phaser.Scene {
     return enemy;
   }
 
-  // SPEC §8: 20% шанс дропа из убитого пикирующего врага (70% выстрел / 30% щит).
-  // Ставка поднята с 8%/60% по просьбе владельца 2026-07-25 — бонусы на оружие
-  // должны выпадать заметно чаще.
+  // SPEC §8: 30% шанс дропа из убитого пикирующего врага (70% выстрел / 30% щит).
+  // Ставка поднята 8% → 20% (2026-07-25) → 30% (2026-07-26) по просьбе владельца:
+  // бонусы должны выпадать заметно чаще.
   maybeDropPowerUp(x, y) {
-    if (Math.random() >= 0.2) {
+    if (Math.random() >= 0.3) {
       return;
     }
     const type = Math.random() < 0.7 ? 'shot' : 'shield';

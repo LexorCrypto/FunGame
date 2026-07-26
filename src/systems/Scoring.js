@@ -12,6 +12,12 @@ const ENEMY_POINTS = {
   dryer: 100,
 };
 
+// SPEC §9: очки за одно попадание по боссу. 5 держит вклад попаданий в
+// 25–50% от бонуса за убийство (Супер-Туалет 100 HP → 500 против 1000,
+// Золотой Трон 500 HP → 2500 против 10000) — заметно, но добивание всё
+// равно решает.
+const BOSS_HIT_POINTS = 5;
+
 const HISCORES_KEY = 'pissuarius_hiscores';
 
 // SPEC §9: топ-10 рекордов в localStorage["pissuarius_hiscores"] = JSON
@@ -126,6 +132,13 @@ export class Scoring {
 
   addBoss(boss) {
     this.addPoints((boss.points ?? 0) * this.cycleMultiplier, boss.x, boss.y);
+  }
+
+  // SPEC §9: попадание по боссу. Без popup — при кулдауне 250 ms и двойном
+  // выстреле «+5» всплывал бы до восьми раз в секунду; обратная связь идёт
+  // счётчиком HUD, вспышкой босса и звуком boss_hit.
+  addBossHit() {
+    this.score += BOSS_HIT_POINTS * this.cycleMultiplier;
   }
 
   // SPEC §9: бонус чистой волны +250×акт (в цикле — ещё ×c, §6), всплывает по центру.
