@@ -1,6 +1,18 @@
 import { explode, shakePlayerDeath } from '../systems/Effects.js';
 import { getAudio } from '../systems/Audio.js';
 
+// SPEC §8: пауэр-апы уровневые (решение владельца 2026-07-26). Оружие:
+// 1 → 2 → 3 снаряда в залпе, щит: 1 → 2 поглощаемых попадания. Выше потолка
+// уровень не растёт — лишний бонус сцена конвертирует в очки (§9).
+export const MAX_SHOT_LEVEL = 2;
+export const MAX_SHIELD_CHARGES = 2;
+
+// SPEC §3: смещения снарядов залпа по x от центра корабля, по уровню оружия.
+const SHOT_OFFSETS = [[0], [-5, 5], [-7, 0, 7]];
+
+// Кольца щита (§8): радиус на заряд, второе появляется у двойного щита.
+const SHIELD_RING_RADII = [11, 15];
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene) {
     super(scene, 240, 240, 'ship-0');
@@ -18,10 +30,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.speedMul = 1;
     this.slowEvent = null;
 
-    // Пауэр-апы (§8): двойной выстрел — бессрочный флаг, снимается только
-    // потерей жизни; щит — булев, поглощает 1 попадание, не стакается.
-    this.doubleShot = false;
-    this.shielded = false;
+    // Пауэр-апы (§8): оружие — уровень 0..2 (1/2/3 снаряда), бессрочно,
+    // снимается только потерей жизни; щит — 0..2 заряда, каждый поглощает
+    // одно попадание. На потолке бонус не копится, а идёт в очки (§9).
+    this.shotLevel = 0;
+    this.shieldCharges = 0;
 
     if (!scene.anims.exists('ship-idle')) {
       scene.anims.create({
@@ -34,22 +47,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.play('ship-idle');
 
-    // Кольцо щита вокруг корабля (§8): видно, пока щит активен.
-    this.shieldRing = scene.add
-      .circle(this.x, this.y, 11)
-      .setStrokeStyle(2, 0x59d6e6, 0.9)
-      .setDepth(6)
-      .setVisible(false);
+    // Кольца щита вокруг корабля (§8): по кольцу на заряд. У двойного щита
+    // кольца пульсируют в противофазе (анимация уровня, решение владельца
+    // 2026-07-26), у одиночного кольцо остаётся статичным.
+    this.shieldRings = SHIELD_RING_RADII.map((radius) =>
+      scene.add
+        .circle(this.x, this.y, radius)
+        .setStrokeStyle(2, 0x59d6e6, 0.9)
+        .setDepth(6)
+        .setVisible(false),
+    );
+    this.shieldPulse = null;
 
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.shieldRing?.destroy();
-      this.shieldRing = null;
+      this.stopShieldPulse();
+      for (const ring of this.shieldRings) {
+        ring.destroy();
+      }
+      this.shieldRings = [];
     });
   }
 
   update(keys, delta) {
     if (this.dead) {
-      this.shieldRing?.setVisible(false);
+      this.updateShieldRings();
       return;
     }
 
@@ -67,20 +88,86 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.y = Phaser.Math.Clamp(this.y + directionY * step, 184, 262);
     this.body.reset(this.x, this.y);
 
-    if (this.shieldRing) {
-      this.shieldRing.setVisible(this.shielded);
-      this.shieldRing.setPosition(this.x, this.y);
+    this.updateShieldRings();
+  }
+
+  // Подбор пауэр-апа (§8): поднимает уровень оружия или добавляет заряд щита.
+  // Возвращает false, если уровень уже на потолке — тогда сцена начисляет
+  // очки вместо усиления (§9).
+  applyPowerUp(type) {
+    if (type === 'shot') {
+      if (this.shotLevel >= MAX_SHOT_LEVEL) {
+        return false;
+      }
+      this.shotLevel += 1;
+      return true;
+    }
+
+    if (type === 'shield') {
+      if (this.shieldCharges >= MAX_SHIELD_CHARGES) {
+        return false;
+      }
+      this.shieldCharges += 1;
+      this.updateShieldRings();
+      return true;
+    }
+
+    return false;
+  }
+
+  // Кольца щита (§8): видно ровно столько колец, сколько зарядов; мёртвый
+  // корабль колец не показывает. Пульсация — только у полного (двойного) щита.
+  updateShieldRings() {
+    const charges = this.dead ? 0 : this.shieldCharges;
+
+    for (let i = 0; i < this.shieldRings.length; i += 1) {
+      this.shieldRings[i].setVisible(i < charges).setPosition(this.x, this.y);
+    }
+
+    if (charges >= MAX_SHIELD_CHARGES) {
+      this.startShieldPulse();
+    } else {
+      this.stopShieldPulse();
     }
   }
 
-  // Подбор пауэр-апа (§8). 'shot' — двойной выстрел до потери жизни;
-  // 'shield' — щит (обновляется до 1, не стакается).
-  applyPowerUp(type) {
-    if (type === 'shot') {
-      this.doubleShot = true;
-    } else if (type === 'shield') {
-      this.shielded = true;
-      this.shieldRing?.setVisible(true);
+  // Анимация двойного щита: кольца дышат в противофазе — внешнее расходится,
+  // пока внутреннее поджимается. Два твина одной длительности заводятся
+  // вместе и потому не расходятся; пауза сцены останавливает оба.
+  // Вызывается каждый кадр из updateShieldRings — повторный вход no-op.
+  startShieldPulse() {
+    if (this.shieldPulse || this.shieldRings.length < SHIELD_RING_RADII.length) {
+      return;
+    }
+
+    const pulse = (target, from, to) =>
+      this.scene.tweens.add({
+        targets: target,
+        scale: { from, to },
+        duration: 450,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+      });
+
+    const [inner, outer] = this.shieldRings;
+    this.shieldPulse = [pulse(outer, 1, 1.15), pulse(inner, 1.08, 1)];
+  }
+
+  // Снимает пульсацию и возвращает кольца к базовому масштабу: без этого
+  // потраченный второй заряд оставил бы раздутое одиночное кольцо.
+  stopShieldPulse() {
+    if (!this.shieldPulse) {
+      return;
+    }
+
+    for (const tween of this.shieldPulse) {
+      tween.stop();
+    }
+    this.shieldPulse = null;
+
+    for (const ring of this.shieldRings) {
+      ring.setScale(1);
     }
   }
 
@@ -118,20 +205,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    // SPEC §8: щит поглощает 1 попадание — без потери жизни. Даём короткую
-    // неуязвимость (1.0 s, §8 не задаёт), иначе тот же непрерывный оверлап
-    // (пикировщик/лужа/босс) съел бы жизнь уже на следующем кадре.
-    if (this.shielded) {
-      this.shielded = false;
-      this.shieldRing?.setVisible(false);
+    // SPEC §8: щит поглощает попадание — по заряду за раз, без потери жизни.
+    // Даём короткую неуязвимость (1.0 s, §8 не задаёт), иначе тот же
+    // непрерывный оверлап (пикировщик/лужа/босс) съел бы и второй заряд, и
+    // жизнь уже на следующем кадре.
+    if (this.shieldCharges > 0) {
+      this.shieldCharges -= 1;
+      this.updateShieldRings();
       this.grantInvulnerability(1000);
       getAudio()?.sfx('shield'); // SPEC §12: лопнувший пузырь щита
       return;
     }
 
-    // §8: двойной выстрел бессрочен, но смерть его снимает. Ветка щита выше
+    // §8: усиление оружия бессрочно, но смерть его снимает. Ветка щита выше
     // жизнь не тратит и сюда не доходит — там бонус сохраняется.
-    this.doubleShot = false;
+    this.shotLevel = 0;
 
     this.lives -= 1;
     this.dead = true;
@@ -143,7 +231,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setActive(false);
     this.setVisible(false);
     this.body.enable = false;
-    this.shieldRing?.setVisible(false);
+    this.updateShieldRings();
 
     this.respawnEvent = this.scene.time.delayedCall(1500, () => {
       if (this.lives === 0) {
@@ -194,41 +282,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return false;
     }
 
-    // SPEC §3: макс 4 снаряда (8 с двойным выстрелом); двойной — атомарно,
-    // не стреляем, если нет двух свободных слотов (иначе усиление даст одиночный).
-    const doubleShot = this.doubleShot;
-    const cap = doubleShot ? 8 : 4;
-    const need = doubleShot ? 2 : 1;
-    if (projectilesGroup.countActive(true) > cap - need) {
+    // SPEC §3: макс 4 снаряда на ствол (4 / 8 / 12 по уровню оружия); залп
+    // атомарен — не стреляем, если свободно меньше снарядов, чем в залпе
+    // (иначе усиление выродилось бы в неполный залп).
+    const offsets = SHOT_OFFSETS[this.shotLevel];
+    const shots = offsets.length;
+    const cap = 4 * shots;
+    if (projectilesGroup.countActive(true) > cap - shots) {
       return false;
     }
 
-    if (doubleShot) {
-      const p1 = projectilesGroup.get();
-      if (!p1) {
-        return false;
-      }
-      // get() возвращает первый НЕактивный объект, не активируя его: без резерва
-      // второй get() вернул бы ТОТ ЖЕ объект и залп выродился бы в один снаряд.
-      // Резервируем p1, затем берём p2; если p2 нет — откатываем p1 (не стреляем).
-      p1.setActive(true).setVisible(true);
-      const p2 = projectilesGroup.get();
-      if (!p2) {
-        p1.deactivate();
-        return false;
-      }
-      // SPEC §3: два снаряда со смещением ±5 px по x.
-      p1.fire(this.x - 5, this.y - 10);
-      p2.fire(this.x + 5, this.y - 10);
-    } else {
+    // get() возвращает первый НЕактивный объект, не активируя его: без
+    // резерва следующий get() вернул бы ТОТ ЖЕ объект и залп выродился бы в
+    // один снаряд. Резервируем весь залп, при нехватке — откатываем.
+    const salvo = [];
+    for (let i = 0; i < shots; i += 1) {
       const projectile = projectilesGroup.get();
       if (!projectile) {
+        for (const reserved of salvo) {
+          reserved.deactivate();
+        }
         return false;
       }
-      projectile.fire(this.x, this.y - 10);
+      projectile.setActive(true).setVisible(true);
+      salvo.push(projectile);
     }
 
-    getAudio()?.sfx('shoot'); // SPEC §12: выстрел (один звук и на залп из двух)
+    for (let i = 0; i < shots; i += 1) {
+      salvo[i].fire(this.x + offsets[i], this.y - 10);
+    }
+
+    // SPEC §12: один звук на залп; у трёх стволов он свой, более плотный.
+    getAudio()?.sfx(shots === 3 ? 'shoot_triple' : 'shoot');
     this.lastFired = time;
     return true;
   }

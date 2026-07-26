@@ -1,5 +1,5 @@
 import { BootScene } from './scenes/BootScene.js';
-import { Player } from './entities/Player.js';
+import { MAX_SHIELD_CHARGES, Player } from './entities/Player.js';
 import { Enemy } from './entities/Enemy.js';
 import { EnemyProjectile, Projectile } from './entities/Projectile.js';
 import { Starfield } from './systems/Starfield.js';
@@ -21,6 +21,12 @@ import { CrawlScene } from './scenes/CrawlScene.js';
 import { EndScene } from './scenes/EndScene.js';
 import { t } from './data/i18n.js';
 
+// SPEC §8: шансы дропа пауэр-апа. Из убитого пикирующего врага — 30%
+// (8% → 20% 2026-07-25 → 30% 2026-07-26), с каждого попадания по боссу — 10%
+// (2026-07-26); оба значения — решения владельца.
+const DIVER_DROP_CHANCE = 0.3;
+const BOSS_HIT_DROP_CHANCE = 0.1;
+
 class PlaygroundScene extends Phaser.Scene {
   constructor() {
     super('playground');
@@ -32,7 +38,7 @@ class PlaygroundScene extends Phaser.Scene {
     this.playerProjectiles = this.physics.add.group({
       classType: Projectile,
       runChildUpdate: true,
-      maxSize: 8,
+      maxSize: 12,
     });
     this.enemies = this.physics.add.group();
     this.enemyProjectiles = this.physics.add.group({
@@ -140,10 +146,18 @@ class PlaygroundScene extends Phaser.Scene {
     this.hazards = this.add.group();
     this.physics.add.overlap(this.player, this.hazards, (player) => player.hit());
 
-    // Пауэр-апы (§8): подбор касанием применяет эффект к кораблю.
+    // Пауэр-апы (§8): подбор касанием поднимает уровень бонуса. На потолке
+    // (тройной выстрел / двойной щит) уровень уже не растёт — такой бонус
+    // конвертируется в очки (§9).
     this.physics.add.overlap(this.player, this.powerups, (player, pu) => {
-      player.applyPowerUp(pu.type);
-      getAudio()?.sfx('powerup'); // SPEC §12: подбор пауэр-апа
+      if (!player.applyPowerUp(pu.type)) {
+        this.scoring.addPowerUpOverflow(pu.x, pu.y);
+        getAudio()?.sfx('powerup_score'); // SPEC §12: бонус ушёл в очки
+      } else if (pu.type === 'shield' && player.shieldCharges === MAX_SHIELD_CHARGES) {
+        getAudio()?.sfx('shield_double'); // SPEC §12: встало второе кольцо
+      } else {
+        getAudio()?.sfx('powerup'); // SPEC §12: подбор пауэр-апа
+      }
       pu.destroy();
     });
 
@@ -158,6 +172,9 @@ class PlaygroundScene extends Phaser.Scene {
         // восьми попапов в секунду.
         if (boss.active) {
           this.scoring.addBossHit();
+          // §8: попадание по боссу тоже роняет бонус (10%) — иначе в долгой
+          // босс-волне усилиться негде: пикировщиков там нет.
+          this.maybeDropPowerUp(boss.x, boss.y, BOSS_HIT_DROP_CHANCE);
         }
         boss.takeDamage(1);
         projectile.deactivate();
@@ -284,11 +301,10 @@ class PlaygroundScene extends Phaser.Scene {
     return enemy;
   }
 
-  // SPEC §8: 30% шанс дропа из убитого пикирующего врага (70% выстрел / 30% щит).
-  // Ставка поднята 8% → 20% (2026-07-25) → 30% (2026-07-26) по просьбе владельца:
-  // бонусы должны выпадать заметно чаще.
-  maybeDropPowerUp(x, y) {
-    if (Math.random() >= 0.3) {
+  // SPEC §8: дроп пауэр-апа — 30% из убитого пикирующего врага и 10% с каждого
+  // попадания по боссу; распределение 70% выстрел / 30% щит.
+  maybeDropPowerUp(x, y, chance = DIVER_DROP_CHANCE) {
+    if (Math.random() >= chance) {
       return;
     }
     const type = Math.random() < 0.7 ? 'shot' : 'shield';

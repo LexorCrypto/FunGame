@@ -1,4 +1,5 @@
 import { t } from '../data/i18n.js';
+import { MAX_SHOT_LEVEL } from '../entities/Player.js';
 
 // SPEC §4: базовые очки за врага (в формации). Пикирующий — ×2 (§9).
 const ENEMY_POINTS = {
@@ -17,6 +18,15 @@ const ENEMY_POINTS = {
 // Золотой Трон 500 HP → 2500 против 10000) — заметно, но добивание всё
 // равно решает.
 const BOSS_HIT_POINTS = 5;
+
+// SPEC §9: очки за пауэр-ап, подобранный на максимальном уровне (§8). 500 —
+// между дорогим пикирующим врагом (туалет ×2 = 300) и бонусом чистой волны
+// второго акта (500): подбор «в никуда» ощутимо платит, но добивание босса
+// всё равно решает.
+const POWERUP_OVERFLOW_POINTS = 500;
+
+// Анимация индикатора тройного выстрела (§1): мигание стволов Y↔W.
+const TRIPLE_SHOT_ANIM = 'powerupTripleShot-blink';
 
 const HISCORES_KEY = 'pissuarius_hiscores';
 
@@ -98,10 +108,20 @@ export class Scoring {
       scene.add.image(440 + i * 16, 10, 'ship-0').setOrigin(0.5).setDepth(1500),
     );
 
-    // Индикатор двойного выстрела (§1, x8 y34): бонус бессрочен (§8), поэтому
-    // только иконка — таймер-полоски больше нет.
-    this.dsIcon = scene.add
-      .image(12, 38, 'powerupDoubleShot-0')
+    // Индикатор оружия (§1, x8 y34): бонус бессрочен (§8), поэтому только
+    // иконка без таймер-полоски. Двойной выстрел статичен, тройной мигает —
+    // по нему уровень читается с одного взгляда.
+    if (!scene.anims.exists(TRIPLE_SHOT_ANIM)) {
+      scene.anims.create({
+        key: TRIPLE_SHOT_ANIM,
+        frames: [{ key: 'powerupTripleShot-0' }, { key: 'powerupTripleShot-1' }],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    this.shotIcon = scene.add
+      .sprite(12, 38, 'powerupDoubleShot-0')
       .setOrigin(0.5)
       .setDepth(1500)
       .setVisible(false);
@@ -141,6 +161,11 @@ export class Scoring {
     this.score += BOSS_HIT_POINTS * this.cycleMultiplier;
   }
 
+  // SPEC §9: бонус подобран на максимальном уровне (§8) — вместо усиления очки.
+  addPowerUpOverflow(x, y) {
+    this.addPoints(POWERUP_OVERFLOW_POINTS * this.cycleMultiplier, x, y);
+  }
+
   // SPEC §9: бонус чистой волны +250×акт (в цикле — ещё ×c, §6), всплывает по центру.
   addCleanWave(act) {
     const bonus = 250 * act * this.cycleMultiplier;
@@ -175,8 +200,17 @@ export class Scoring {
     const lives = scene.player ? scene.player.lives : 0;
     this.lifeIcons.forEach((icon, i) => icon.setVisible(i < lives));
 
-    // Индикатор двойного выстрела (§8): держится до смерти, таймера нет.
-    this.dsIcon.setVisible(scene.player ? scene.player.doubleShot === true : false);
+    // Индикатор оружия (§8): держится до смерти, таймера нет. Тройной уровень
+    // отличается мигающей иконкой, двойной — статичной.
+    const shotLevel = scene.player ? scene.player.shotLevel : 0;
+    this.shotIcon.setVisible(shotLevel > 0);
+    if (shotLevel >= MAX_SHOT_LEVEL) {
+      // true — не рестартовать уже идущую анимацию на каждом кадре.
+      this.shotIcon.play(TRIPLE_SHOT_ANIM, true);
+    } else if (this.shotIcon.anims.isPlaying) {
+      this.shotIcon.stop();
+      this.shotIcon.setTexture('powerupDoubleShot-0');
+    }
   }
 
   destroy() {
@@ -184,7 +218,7 @@ export class Scoring {
       this.scoreText,
       this.hiscoreText,
       this.waveText,
-      this.dsIcon,
+      this.shotIcon,
       ...this.lifeIcons,
     ]) {
       obj?.destroy();

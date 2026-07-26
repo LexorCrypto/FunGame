@@ -242,6 +242,19 @@ export const SPRITES = {
     '...KK..KK...', '..KYYKKYYK..', '..KYYKKYYK..', '..KYYKKYYK..',
     '..KYYKKYYK..', '..KYYKKYYK..', '...KK..KK...',
   ]],
+  // Иконка тройного выстрела (§11): три ствола, два кадра — стволы мигают
+  // Y↔W (анимация уровня, решение владельца 2026-07-26). Тёплые R/O не
+  // используются: они закреплены за огнём врагов.
+  powerupTripleShot: [
+    [
+      '..KK.KK.KK..', '.KYYKYYKYYK.', '.KYYKYYKYYK.', '.KYYKYYKYYK.',
+      '.KYYKYYKYYK.', '.KYYKYYKYYK.', '..KK.KK.KK..',
+    ],
+    [
+      '..KK.KK.KK..', '.KWWKWWKWWK.', '.KWWKWWKWWK.', '.KWWKWWKWWK.',
+      '.KWWKWWKWWK.', '.KWWKWWKWWK.', '..KK.KK.KK..',
+    ],
+  ],
   powerupShield: [[
     '....KKKK....', '..KKPPPPKK..', '.KPPKKKKPPK.', '.KPK....KPK.',
     '.KPK....KPK.', '.KPPK..KPPK.', '..KPPKKPPK..', '...KKKKKK...',
