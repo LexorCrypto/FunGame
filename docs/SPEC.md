@@ -779,7 +779,7 @@ KNNNNK
 | sfx_plunger.mp3 | 0.5 | rubber plunger pop and squelch, 8-bit cartoon game style |
 | sfx_wrench.mp3 | 0.7 | spinning metallic whoosh with soft clang, 8-bit retro game style |
 | sfx_powerup.mp3 | 0.8 | cheerful 8-bit power-up jingle, rising arpeggio, high quality |
-| sfx_powerup_score.mp3 | 0.5 | short 8-bit coin bonus chime, points awarded, retro arcade, high quality |
+| sfx_powerup_score.mp3 | 0.5 | loud bright punchy 8-bit coin bonus chime, rising two-note ding, arcade score pickup, full volume, high quality |
 | sfx_shield.mp3 | 0.5 | 8-bit energy shield bubble pop, retro arcade |
 | sfx_shield_double.mp3 | 0.6 | 8-bit double energy shield engaging, two layered bubbles snapping into place, rising twin chime, retro arcade |
 | sfx_wave_clear.mp3 | 1.0 | cheerful 8-bit level clear ding arpeggio, retro arcade |
@@ -787,16 +787,12 @@ KNNNNK
 | sfx_boss_hit.mp3 | 0.3 | 8-bit heavy impact thud, boss damage, retro arcade |
 | sfx_phase.mp3 | 0.8 | 8-bit alarm riser, boss enrage sting, retro arcade |
 
-**Три файла таблицы ещё не сгенерированы:** `sfx_shoot_triple`,
-`sfx_powerup_score`, `sfx_shield_double` (события уровней пауэр-апов, §8).
-ElevenLabs 2026-07-26 отвечает 401 `payment_issue` — подписка в статусе
-`past_due`, квота при этом свободна. По решению владельца эти три ключа
-временно **не входят** в `SFX_KEYS` (`src/systems/Audio.js`): ключ в том списке
-означает предзагрузку в BootScene, то есть 404 в консоли и нарушение §16.
-Вызовы `sfx()` для этих событий уже стоят в коде и тихо no-op'ятся. Порядок
-возврата после оплаты: `node scripts/generate_audio.mjs
---only=sfx_shoot_triple,sfx_powerup_score,sfx_shield_double`, затем вернуть три
-ключа в `SFX_KEYS` — автоматически появление mp3 их не включит.
+Три записи для уровней пауэр-апов (§8) добавлены 2026-07-26 и сгенерированы
+тем же скриптом. Первый вариант `sfx_powerup_score` вышел на −33.3 dB mean —
+на 11.6 dB тише самого тихого из остальных SFX, то есть неслышимым рядом с
+ними; промпт переписан на «loud bright punchy … full volume» и файл
+перегенерирован до −14.9 dB mean / −0.1 dB max, что попадает в общий разброс
+таблицы (−7.5…−21.7 dB mean).
 
 ### Музыка (6 файлов, ElevenLabs Music)
 
@@ -1030,9 +1026,8 @@ SPEC нормативен, но часть значений в нём изнач
 
 ### Осознанные отклонения
 
-- **Длительность 7 коротких SFX (§12).** Табличные 0.2–0.4 s клампуются к 0.5 s — это пол
-  диапазона API ElevenLabs; правило «ближайший допустимый эквивалент». Седьмая запись
-  (`sfx_shoot_triple`) пока не сгенерирована, см. примечание под таблицей §12.
+- **Длительность 7 коротких SFX (§12).** Табличные 0.2–0.4 s клампованы к 0.5 s — это пол
+  диапазона API ElevenLabs; правило «ближайший допустимый эквивалент».
 - **Фактическая длина луп-треков (§12).** 29.481 / 42.683 / 39.967 s против номиналов
   30 / 45 / 40 s: номинал — параметр генерации, приёмка — по разрыву петли в декодере.
 - **Victory (§14)** остаётся баннером WaveDirector в игре, а не отдельной сценой;

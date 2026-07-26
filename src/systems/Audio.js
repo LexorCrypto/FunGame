@@ -11,17 +11,9 @@ const MUSIC_VOLUME = 0.5;
 const SFX_VOLUME = 0.8;
 
 // SPEC §12, таблица SFX: имя события → ключ аудио-кэша (= имя файла без .mp3).
-//
-// В списке 16 из 19 записей таблицы: `sfx_shoot_triple`, `sfx_powerup_score` и
-// `sfx_shield_double` (§8, уровни пауэр-апов) НЕ подключены — их mp3 ещё нет.
-// ElevenLabs 2026-07-26 отдаёт 401 payment_issue (подписка past_due), а ключ в
-// этом списке означает предзагрузку в BootScene, то есть 404 в консоли и
-// нарушение §16. Промпты и длительности лежат в SPEC §12 и в MANIFEST
-// `scripts/generate_audio.mjs`; вызовы `sfx()` для этих трёх событий уже стоят
-// в коде и тихо no-op'ятся (решение владельца 2026-07-26). После оплаты:
-// сгенерировать три файла, вернуть ключи в список — правок в игре не нужно.
 export const SFX_KEYS = [
   'sfx_shoot',
+  'sfx_shoot_triple',
   'sfx_hit',
   'sfx_enemy_explode',
   'sfx_player_death',
@@ -32,7 +24,9 @@ export const SFX_KEYS = [
   'sfx_plunger',
   'sfx_wrench',
   'sfx_powerup',
+  'sfx_powerup_score',
   'sfx_shield',
+  'sfx_shield_double',
   'sfx_wave_clear',
   'sfx_roach_spawn',
   'sfx_boss_hit',

@@ -26,7 +26,7 @@ const SFX = [
   ['sfx_plunger.mp3', 0.5, 'rubber plunger pop and squelch, 8-bit cartoon game style'],
   ['sfx_wrench.mp3', 0.7, 'spinning metallic whoosh with soft clang, 8-bit retro game style'],
   ['sfx_powerup.mp3', 0.8, 'cheerful 8-bit power-up jingle, rising arpeggio, high quality'],
-  ['sfx_powerup_score.mp3', 0.5, 'short 8-bit coin bonus chime, points awarded, retro arcade, high quality'],
+  ['sfx_powerup_score.mp3', 0.5, 'loud bright punchy 8-bit coin bonus chime, rising two-note ding, arcade score pickup, full volume, high quality'],
   ['sfx_shield.mp3', 0.5, '8-bit energy shield bubble pop, retro arcade'],
   ['sfx_shield_double.mp3', 0.6, '8-bit double energy shield engaging, two layered bubbles snapping into place, rising twin chime, retro arcade'],
   ['sfx_wave_clear.mp3', 1.0, 'cheerful 8-bit level clear ding arpeggio, retro arcade'],
