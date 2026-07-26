@@ -148,15 +148,21 @@ M1–M9 и 26 задач FUN-1…FUN-26, все Done. История там, н�
 
 ```text
 close_session.audit_full_tier_paths = .github/workflows/**, scripts/generate_audio.mjs, .env.example, landing/next.config.js
-close_session.audit_light_tier_paths = docs/**, assets/**, README.md, LICENSE, NOTICE, CONTEXT.md, status.md, .planning/**, src/data/i18n.js
+close_session.audit_light_tier_paths = docs/**, assets/**, README.md, LICENSE, NOTICE, CONTEXT.md, status.md, src/data/i18n.js
 ```
 
 - **full-tier** — CI/деплой (`pages.yml`), офлайн-генерация аудио с ключом
-  `ELEVENLABS_API_KEY` из env (`generate_audio.mjs`, `.env.example` — единственные точки, где
-  репозиторий вообще касается секретов) и конфиг сборки лендинга, который управляет деплоем на
-  GitHub Pages (`next.config.js`). Игра без бэкенда, БД и платежей — auth/money/migrations в
-  репозитории нет, поэтому full-tier список короткий и не раздут искусственно.
+  `ELEVENLABS_API_KEY` из env (`generate_audio.mjs` — единственный исполняемый код, который
+  потребляет проектный секрет; `.env.example` и `.gitignore` — связанные конфигурационные
+  поверхности, порядок работы с ключом описан ещё в `README.md` и SPEC §12) и конфиг сборки
+  лендинга, который управляет деплоем на GitHub Pages (`next.config.js`). Игра без бэкенда,
+  БД и платежей — auth/money/migrations в репозитории нет, поэтому full-tier список короткий
+  и не раздут искусственно.
 - **light-tier** — документация и заметки сессий/аудитов (`docs/**`), статические аудио-ассеты
-  (`assets/**`), лицензионные и справочные файлы, офлайн-снапшот (`status.md`), развёрнутый
-  хэндофф (`.planning/**`) и таблица переводов RU/EN (`src/data/i18n.js`), которая не влияет
-  на игровую логику.
+  (`assets/**`), лицензионные и справочные файлы, офлайн-снапшот (`status.md`) и таблица
+  переводов RU/EN (`src/data/i18n.js`), которая не влияет на игровую логику.
+- `.planning/**` в light-tier **не входит намеренно**: `audit_coverage.py` держит
+  `**/.planning/**` в неизменяемом списке `INSTRUCTION_SURFACES` (рядом с `CLAUDE.md`,
+  `AGENTS.md`, `**/skills/**`, `**/hooks/**`), поэтому для хэндоффа классификатор возвращает
+  `full` независимо от `audit_light_tier_paths`. Гейт от этого не дырявый — он остаётся
+  fail-closed, — но запись в light-tier создавала бы неверные ожидания о стоимости аудита.
