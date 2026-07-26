@@ -70,8 +70,10 @@ GitHub Issues (метки `owner-decision`, `audit`, `acceptance`). Перечн
 
 ## Блокеры
 
-- Нет. Долг по codex-аудитам M7–M9 закрыт: записи по всем коммитам лежат в
-  `docs/operations/audits/<short-sha>-codex-audit.md`, включая коммиты этой сессии.
+- Нет. Долг по codex-аудитам M7–M9 закрыт: записи по всем предшествующим
+  substantive-коммитам лежат в `docs/operations/audits/<short-sha>-codex-audit.md`.
+  Close-out коммиты текущей сессии аудируются в её же ходе, их записи добавляются
+  финальным audit-only коммитом — контракт `close-session` §3.
 
 ## Открытые вопросы
 
