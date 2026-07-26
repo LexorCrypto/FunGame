@@ -40,7 +40,8 @@ class PlaygroundScene extends Phaser.Scene {
       runChildUpdate: true,
       maxSize: 12,
     });
-    this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
+    // §2: WASD и стрелки — равнозначные раскладки движения, работают вместе.
+    this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,UP,DOWN,LEFT,RIGHT');
     this.formation = new Formation(this);
 
     this.diveDirector = new DiveDirector(this, this.formation);

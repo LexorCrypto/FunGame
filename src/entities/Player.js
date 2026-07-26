@@ -18,9 +18,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.speedMul = 1;
     this.slowEvent = null;
 
-    // Пауэр-апы (§8): двойной выстрел — таймер в мс; щит — булев, поглощает
-    // 1 попадание, не стакается.
-    this.doubleShotMs = 0;
+    // Пауэр-апы (§8): двойной выстрел — бессрочный флаг, снимается только
+    // потерей жизни; щит — булев, поглощает 1 попадание, не стакается.
+    this.doubleShot = false;
     this.shielded = false;
 
     if (!scene.anims.exists('ship-idle')) {
@@ -48,18 +48,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(keys, delta) {
-    // Таймер двойного выстрела идёт всегда (§8: бонус по времени, 10 s).
-    if (this.doubleShotMs > 0) {
-      this.doubleShotMs = Math.max(0, this.doubleShotMs - delta);
-    }
-
     if (this.dead) {
       this.shieldRing?.setVisible(false);
       return;
     }
 
-    const directionX = Number(keys.D.isDown) - Number(keys.A.isDown);
-    const directionY = Number(keys.S.isDown) - Number(keys.W.isDown);
+    // §2: WASD и стрелки равнозначны — нажатие любой из пары даёт то же направление.
+    const directionX = Number(keys.D.isDown || keys.RIGHT.isDown) - Number(keys.A.isDown || keys.LEFT.isDown);
+    const directionY = Number(keys.S.isDown || keys.DOWN.isDown) - Number(keys.W.isDown || keys.UP.isDown);
     const magnitude = Math.hypot(directionX, directionY);
     const base = 140 * this.speedMul;
     const speed = magnitude > 1 ? base / Math.SQRT2 : base;
@@ -77,11 +73,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  // Подбор пауэр-апа (§8). 'shot' — двойной выстрел на 10 s; 'shield' — щит
-  // (обновляется до 1, не стакается).
+  // Подбор пауэр-апа (§8). 'shot' — двойной выстрел до потери жизни;
+  // 'shield' — щит (обновляется до 1, не стакается).
   applyPowerUp(type) {
     if (type === 'shot') {
-      this.doubleShotMs = 10000;
+      this.doubleShot = true;
     } else if (type === 'shield') {
       this.shielded = true;
       this.shieldRing?.setVisible(true);
@@ -132,6 +128,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       getAudio()?.sfx('shield'); // SPEC §12: лопнувший пузырь щита
       return;
     }
+
+    // §8: двойной выстрел бессрочен, но смерть его снимает. Ветка щита выше
+    // жизнь не тратит и сюда не доходит — там бонус сохраняется.
+    this.doubleShot = false;
 
     this.lives -= 1;
     this.dead = true;
@@ -196,7 +196,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // SPEC §3: макс 4 снаряда (8 с двойным выстрелом); двойной — атомарно,
     // не стреляем, если нет двух свободных слотов (иначе усиление даст одиночный).
-    const doubleShot = this.doubleShotMs > 0;
+    const doubleShot = this.doubleShot;
     const cap = doubleShot ? 8 : 4;
     const need = doubleShot ? 2 : 1;
     if (projectilesGroup.countActive(true) > cap - need) {

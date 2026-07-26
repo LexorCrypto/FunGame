@@ -229,8 +229,12 @@ export const SPRITES = {
     ],
   ],
   playerBullet: [['.KK.', 'KPPK', 'KWWK', 'KWWK', 'KPPK', '.KK.']],
-  enemyDrop: [['.KK.', 'KBBK', 'KBBK', '.KK.']],
-  urinalStream: [['.KK.', 'KBBK', 'KBBK', 'KBBK', 'KBBK', '.KK.']],
+  // Снаряды врагов тёплые и без контура K: на чёрном фоне контур съедал почти
+  // весь силуэт, и синяя капля 4×4 читалась как белая звезда фона (решение
+  // владельца 2026-07-26). Цветовое разделение: белый — звёзды, холодный P/W —
+  // огонь игрока, тёплый R/O — огонь врагов.
+  enemyDrop: [['.RR.', 'ROOR', 'ROOR', '.RR.']],
+  urinalStream: [['.RR.', 'ROOR', 'ROOR', 'ROOR', 'ROOR', '.RR.']],
   plungerSucker: [['..KK..', '.KRRK.', 'KRRRRK', 'KRRRRK', '.KKKK.']],
   wrench: [['.KK...KK', 'KSSKKSSK', 'KSSSSSSK', '.KSSSSK.', '..KSSK..', '..KSSK..', '..KSSK..', '..KSSK..']],
   macaquePoop: [['..KK..', '.KNNK.', 'KNNNNK', 'KNnNNK', 'KNNNNK', '.KKKK.']],

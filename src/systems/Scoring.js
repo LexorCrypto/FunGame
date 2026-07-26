@@ -92,21 +92,12 @@ export class Scoring {
       scene.add.image(440 + i * 16, 10, 'ship-0').setOrigin(0.5).setDepth(1500),
     );
 
-    // Индикатор двойного выстрела (§1, x8 y34): иконка + полоска таймера.
+    // Индикатор двойного выстрела (§1, x8 y34): бонус бессрочен (§8), поэтому
+    // только иконка — таймер-полоски больше нет.
     this.dsIcon = scene.add
       .image(12, 38, 'powerupDoubleShot-0')
       .setOrigin(0.5)
       .setDepth(1500)
-      .setVisible(false);
-    this.dsBarBg = scene.add
-      .rectangle(20, 38, 40, 3, 0x1a1c2c)
-      .setOrigin(0, 0.5)
-      .setDepth(1500)
-      .setVisible(false);
-    this.dsBar = scene.add
-      .rectangle(20, 38, 40, 3, 0x59d6e6)
-      .setOrigin(0, 0.5)
-      .setDepth(1501)
       .setVisible(false);
 
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
@@ -171,15 +162,8 @@ export class Scoring {
     const lives = scene.player ? scene.player.lives : 0;
     this.lifeIcons.forEach((icon, i) => icon.setVisible(i < lives));
 
-    // Индикатор двойного выстрела: остаток таймера как доля от 10 s (§8).
-    const dsMs = scene.player ? scene.player.doubleShotMs ?? 0 : 0;
-    const dsOn = dsMs > 0;
-    this.dsIcon.setVisible(dsOn);
-    this.dsBarBg.setVisible(dsOn);
-    this.dsBar.setVisible(dsOn);
-    if (dsOn) {
-      this.dsBar.width = 40 * Phaser.Math.Clamp(dsMs / 10000, 0, 1);
-    }
+    // Индикатор двойного выстрела (§8): держится до смерти, таймера нет.
+    this.dsIcon.setVisible(scene.player ? scene.player.doubleShot === true : false);
   }
 
   destroy() {
@@ -188,8 +172,6 @@ export class Scoring {
       this.hiscoreText,
       this.waveText,
       this.dsIcon,
-      this.dsBarBg,
-      this.dsBar,
       ...this.lifeIcons,
     ]) {
       obj?.destroy();

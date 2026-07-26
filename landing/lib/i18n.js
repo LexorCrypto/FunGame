@@ -12,7 +12,7 @@ const i18n = {
       'ОБЪЕКТ #006: ТРОН. СТАТУС: ЗОЛОТОЙ. ОПАСЕН',
     ],
     play: 'ИГРАТЬ',
-    controls: 'WASD — движение • ПРОБЕЛ — огонь',
+    controls: 'WASD или стрелки — движение • ПРОБЕЛ — огонь',
     lang: 'ЯЗЫК',
   },
   en: {
@@ -28,7 +28,7 @@ const i18n = {
       'OBJECT #006: THRONE. STATUS: GOLDEN. DANGEROUS',
     ],
     play: 'PLAY',
-    controls: 'WASD — move • SPACE — fire',
+    controls: 'WASD or arrows — move • SPACE — fire',
     lang: 'LANGUAGE',
   },
 };
